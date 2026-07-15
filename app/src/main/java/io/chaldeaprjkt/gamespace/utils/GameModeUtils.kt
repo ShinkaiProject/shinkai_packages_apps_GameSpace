@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.utils
+package com.android.gamespace.utils
 
 import android.app.GameManager
 import android.content.Context
@@ -25,11 +25,11 @@ import android.os.RemoteException
 import android.os.ServiceManager
 import android.provider.DeviceConfig
 import android.provider.Settings
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.GameConfig
-import io.chaldeaprjkt.gamespace.data.GameConfig.Companion.asConfig
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.data.UserGame
+import com.android.gamespace.R
+import com.android.gamespace.data.GameConfig
+import com.android.gamespace.data.GameConfig.Companion.asConfig
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.data.UserGame
 import javax.inject.Inject
 
 class GameModeUtils @Inject constructor(private val context: Context) {

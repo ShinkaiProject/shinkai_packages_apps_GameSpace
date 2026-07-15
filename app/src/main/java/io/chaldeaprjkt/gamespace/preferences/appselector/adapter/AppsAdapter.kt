@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences.appselector.adapter
+package com.android.gamespace.preferences.appselector.adapter
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -21,7 +21,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
-import io.chaldeaprjkt.gamespace.R
+import com.android.gamespace.R
 
 class AppsAdapter(private val pm: PackageManager, private val apps: List<ApplicationInfo>) :
     ListAdapter<ApplicationInfo, AppsItemViewHolder>(DiffCallback(pm)) {

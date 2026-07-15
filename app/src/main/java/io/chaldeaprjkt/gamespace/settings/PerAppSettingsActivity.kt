@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.settings
+package com.android.gamespace.settings
 
 import android.os.Bundle
 import android.util.Log

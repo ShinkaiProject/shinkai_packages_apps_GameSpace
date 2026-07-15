@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -68,7 +68,7 @@ class GameBroadcastReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val GAME_START = "io.chaldeaprjkt.gamespace.action.GAME_START"
-        const val GAME_STOP = "io.chaldeaprjkt.gamespace.action.GAME_STOP"
+        const val GAME_START = "com.android.gamespace.action.GAME_START"
+        const val GAME_STOP = "com.android.gamespace.action.GAME_STOP"
     }
 }

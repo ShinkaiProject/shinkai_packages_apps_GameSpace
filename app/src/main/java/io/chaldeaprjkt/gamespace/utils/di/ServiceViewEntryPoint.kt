@@ -1,12 +1,12 @@
-package io.chaldeaprjkt.gamespace.utils.di
+package com.android.gamespace.utils.di
 
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import io.chaldeaprjkt.gamespace.data.AppSettings
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils
-import io.chaldeaprjkt.gamespace.utils.ScreenUtils
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.utils.GameModeUtils
+import com.android.gamespace.utils.ScreenUtils
 
 
 @EntryPoint

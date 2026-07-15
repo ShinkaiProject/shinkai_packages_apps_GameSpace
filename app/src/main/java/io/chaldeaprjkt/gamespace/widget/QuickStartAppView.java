@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget;
+package com.android.gamespace.widget;
 
 import static android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED;
 
@@ -58,7 +58,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import io.chaldeaprjkt.gamespace.R;
+import com.android.gamespace.R;
 
 public class QuickStartAppView extends LinearLayout {
     private RecyclerView recyclerView;

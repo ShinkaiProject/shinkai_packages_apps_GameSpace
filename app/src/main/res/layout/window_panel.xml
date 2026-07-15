@@ -20,7 +20,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <io.chaldeaprjkt.gamespace.widget.PanelView
+    <com.android.gamespace.widget.PanelView
         android:id="@+id/panel_view"
         android:layout_width="220dp"
         android:layout_height="wrap_content" />

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences.appselector.adapter
+package com.android.gamespace.preferences.appselector.adapter
 
 import android.content.pm.ApplicationInfo
 import android.view.View
@@ -21,7 +21,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import io.chaldeaprjkt.gamespace.R
+import com.android.gamespace.R
 
 class AppsItemViewHolder(private val v: View) : RecyclerView.ViewHolder(v) {
     private val pm by lazy { v.context.packageManager }

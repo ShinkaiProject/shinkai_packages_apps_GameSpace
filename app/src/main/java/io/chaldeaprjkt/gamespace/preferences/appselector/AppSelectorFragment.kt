@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences.appselector
+package com.android.gamespace.preferences.appselector
 
 import android.app.Activity
 import android.content.Intent
@@ -35,10 +35,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.preferences.AppListPreferences
-import io.chaldeaprjkt.gamespace.preferences.appselector.adapter.AppsAdapter
+import com.android.gamespace.R
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.preferences.AppListPreferences
+import com.android.gamespace.preferences.appselector.adapter.AppsAdapter
 import javax.inject.Inject
 
 @AndroidEntryPoint(Fragment::class)

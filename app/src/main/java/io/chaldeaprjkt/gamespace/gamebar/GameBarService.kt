@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -36,12 +36,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.view.*
 import com.android.systemui.screenrecord.IRecordingCallback
 import dagger.hilt.android.AndroidEntryPoint
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.AppSettings
-import io.chaldeaprjkt.gamespace.settings.SettingsActivity
-import io.chaldeaprjkt.gamespace.utils.*
-import io.chaldeaprjkt.gamespace.widget.MenuSwitcher
-import io.chaldeaprjkt.gamespace.widget.PanelView
+import com.android.gamespace.R
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.settings.SettingsActivity
+import com.android.gamespace.utils.*
+import com.android.gamespace.widget.MenuSwitcher
+import com.android.gamespace.widget.PanelView
 import javax.inject.Inject
 import kotlin.reflect.KProperty0
 

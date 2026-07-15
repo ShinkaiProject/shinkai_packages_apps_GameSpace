@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget
+package com.android.gamespace.widget
 
 import android.animation.ValueAnimator
 import android.content.Context
@@ -29,10 +29,10 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.LinearLayout
 import androidx.core.view.doOnLayout
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.utils.di.ServiceViewEntryPoint
-import io.chaldeaprjkt.gamespace.utils.dp
-import io.chaldeaprjkt.gamespace.utils.entryPointOf
+import com.android.gamespace.R
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.dp
+import com.android.gamespace.utils.entryPointOf
 
 class PanelView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null

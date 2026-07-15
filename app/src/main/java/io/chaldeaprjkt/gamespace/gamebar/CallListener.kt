@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.Manifest
 import android.content.Context
@@ -38,8 +38,8 @@ import dagger.hilt.android.scopes.ServiceScoped
 
 import javax.inject.Inject
 
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.AppSettings
+import com.android.gamespace.R
+import com.android.gamespace.data.AppSettings
 
 @ServiceScoped
 class CallListener @Inject constructor(

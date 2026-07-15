@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences;
+package com.android.gamespace.preferences;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.chaldeaprjkt.gamespace.R;
+import com.android.gamespace.R;
 
 public class QuickStartAppPreferenceDialogFragment extends PreferenceDialogFragmentCompat {
 

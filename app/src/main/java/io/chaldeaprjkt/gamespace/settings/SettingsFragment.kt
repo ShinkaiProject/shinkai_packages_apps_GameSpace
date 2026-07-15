@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.settings
+package com.android.gamespace.settings
 
 import android.content.Intent
 import android.os.Build
@@ -28,11 +28,11 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import dagger.hilt.android.AndroidEntryPoint
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.preferences.AppListPreferences
-import io.chaldeaprjkt.gamespace.preferences.appselector.AppSelectorActivity
-import io.chaldeaprjkt.gamespace.preferences.QuickStartAppPreference
-import io.chaldeaprjkt.gamespace.preferences.QuickStartAppPreferenceDialogFragment
+import com.android.gamespace.R
+import com.android.gamespace.preferences.AppListPreferences
+import com.android.gamespace.preferences.appselector.AppSelectorActivity
+import com.android.gamespace.preferences.QuickStartAppPreference
+import com.android.gamespace.preferences.QuickStartAppPreferenceDialogFragment
 
 @AndroidEntryPoint(PreferenceFragmentCompat::class)
 class SettingsFragment : Hilt_SettingsFragment() {

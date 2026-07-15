@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.settings
+package com.android.gamespace.settings
 
 import android.app.Activity
 import android.content.Intent
@@ -26,11 +26,11 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import dagger.hilt.android.AndroidEntryPoint
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.GameConfig
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.data.UserGame
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils
+import com.android.gamespace.R
+import com.android.gamespace.data.GameConfig
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.data.UserGame
+import com.android.gamespace.utils.GameModeUtils
 import javax.inject.Inject
 
 @AndroidEntryPoint(PreferenceFragmentCompat::class)

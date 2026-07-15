@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.utils.di
+package com.android.gamespace.utils.di
 
 import android.content.Context
 import com.google.gson.Gson
@@ -22,11 +22,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import io.chaldeaprjkt.gamespace.data.AppSettings
-import io.chaldeaprjkt.gamespace.data.GameSession
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils
-import io.chaldeaprjkt.gamespace.utils.ScreenUtils
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.data.GameSession
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.utils.GameModeUtils
+import com.android.gamespace.utils.ScreenUtils
 import javax.inject.Singleton
 
 

@@ -32,7 +32,7 @@
         android:paddingVertical="5dp"
         android:theme="@style/GameSpaceTheme.GameBar">
 
-        <io.chaldeaprjkt.gamespace.widget.MenuSwitcher
+        <com.android.gamespace.widget.MenuSwitcher
             android:id="@+id/action_menu_switcher"
             android:layout_width="@dimen/actions_size"
             android:layout_height="@dimen/actions_size" />

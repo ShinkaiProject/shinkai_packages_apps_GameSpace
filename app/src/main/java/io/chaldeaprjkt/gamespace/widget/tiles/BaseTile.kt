@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget.tiles
+package com.android.gamespace.widget.tiles
 
 import android.content.Context
 import android.util.AttributeSet
@@ -22,9 +22,9 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.utils.di.ServiceViewEntryPoint
-import io.chaldeaprjkt.gamespace.utils.entryPointOf
+import com.android.gamespace.R
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.entryPointOf
 
 
 abstract class BaseTile @JvmOverloads constructor(

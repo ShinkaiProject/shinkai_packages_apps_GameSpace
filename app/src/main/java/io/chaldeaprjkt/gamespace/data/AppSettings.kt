@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.data
+package com.android.gamespace.data
 
 import android.app.Service
 import android.content.Context
 import android.view.WindowManager
 import androidx.preference.PreferenceManager
-import io.chaldeaprjkt.gamespace.utils.dp
-import io.chaldeaprjkt.gamespace.utils.statusbarHeight
+import com.android.gamespace.utils.dp
+import com.android.gamespace.utils.statusbarHeight
 import javax.inject.Inject
 
 class AppSettings @Inject constructor(private val context: Context) {

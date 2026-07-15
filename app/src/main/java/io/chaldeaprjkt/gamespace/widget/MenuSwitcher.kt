@@ -1,4 +1,4 @@
-package io.chaldeaprjkt.gamespace.widget
+package com.android.gamespace.widget
 
 import android.app.ActivityTaskManager
 import android.content.Context
@@ -8,10 +8,10 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.window.TaskFpsCallback
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.utils.di.ServiceViewEntryPoint
-import io.chaldeaprjkt.gamespace.utils.dp
-import io.chaldeaprjkt.gamespace.utils.entryPointOf
+import com.android.gamespace.R
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.dp
+import com.android.gamespace.utils.entryPointOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

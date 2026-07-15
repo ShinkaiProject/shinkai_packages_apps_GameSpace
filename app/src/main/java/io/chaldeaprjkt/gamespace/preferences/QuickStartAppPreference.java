@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences;
+package com.android.gamespace.preferences;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;

@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget.tiles
+package com.android.gamespace.widget.tiles
 
 import android.app.GameManager
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils.Companion.describeGameMode
-import io.chaldeaprjkt.gamespace.utils.di.ServiceViewEntryPoint
-import io.chaldeaprjkt.gamespace.utils.entryPointOf
+import com.android.gamespace.R
+import com.android.gamespace.utils.GameModeUtils.Companion.describeGameMode
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.entryPointOf
 
 class GameModeTile @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null

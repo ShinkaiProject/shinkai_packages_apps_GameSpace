@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget;
+package com.android.gamespace.widget;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -26,7 +26,7 @@ import android.widget.ProgressBar;
 
 import java.lang.Runnable;
 
-import io.chaldeaprjkt.gamespace.R;
+import com.android.gamespace.R;
 
 public class MemoryView extends ProgressBar {
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.annotation.SuppressLint
 import android.app.ActivityTaskManager
@@ -30,12 +30,12 @@ import android.os.RemoteException
 import android.os.UserHandle
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
-import io.chaldeaprjkt.gamespace.data.AppSettings
-import io.chaldeaprjkt.gamespace.data.GameSession
-import io.chaldeaprjkt.gamespace.data.SystemSettings
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils
-import io.chaldeaprjkt.gamespace.utils.ScreenUtils
-import io.chaldeaprjkt.gamespace.utils.isServiceRunning
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.data.GameSession
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.utils.GameModeUtils
+import com.android.gamespace.utils.ScreenUtils
+import com.android.gamespace.utils.isServiceRunning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

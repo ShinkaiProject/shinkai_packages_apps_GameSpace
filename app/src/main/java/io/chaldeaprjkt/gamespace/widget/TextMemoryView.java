@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.widget;
+package com.android.gamespace.widget;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -23,7 +23,7 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
-import io.chaldeaprjkt.gamespace.R;
+import com.android.gamespace.R;
 
 public class TextMemoryView extends TextView {
 

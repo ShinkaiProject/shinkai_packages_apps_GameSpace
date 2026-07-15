@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.utils
+package com.android.gamespace.utils
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -25,7 +25,7 @@ import android.graphics.Point
 import android.view.View
 import android.view.WindowManager
 import dagger.hilt.EntryPoints
-import io.chaldeaprjkt.gamespace.gamebar.DraggableTouchListener
+import com.android.gamespace.gamebar.DraggableTouchListener
 
 fun View.registerDraggableTouchListener(
     initPoint: () -> Point,

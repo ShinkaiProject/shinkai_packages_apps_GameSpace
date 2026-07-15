@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.chaldeaprjkt.gamespace.preferences
+package com.android.gamespace.preferences
 
 import android.app.Activity
 import android.content.Context
@@ -23,13 +23,13 @@ import android.util.AttributeSet
 import androidx.activity.result.ActivityResult
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.GameConfig
-import io.chaldeaprjkt.gamespace.data.UserGame
-import io.chaldeaprjkt.gamespace.settings.PerAppSettingsFragment
-import io.chaldeaprjkt.gamespace.utils.GameModeUtils.Companion.describeGameMode
-import io.chaldeaprjkt.gamespace.utils.di.ServiceViewEntryPoint
-import io.chaldeaprjkt.gamespace.utils.entryPointOf
+import com.android.gamespace.R
+import com.android.gamespace.data.GameConfig
+import com.android.gamespace.data.UserGame
+import com.android.gamespace.settings.PerAppSettingsFragment
+import com.android.gamespace.utils.GameModeUtils.Companion.describeGameMode
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.entryPointOf
 
 
 class AppListPreferences @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :

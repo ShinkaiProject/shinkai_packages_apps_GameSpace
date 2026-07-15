@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.app.Notification
 import android.service.notification.NotificationListenerService

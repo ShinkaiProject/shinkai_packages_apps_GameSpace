@@ -70,7 +70,7 @@
                     android:drawablePadding="2dp"
                     android:textSize="14sp" />
 
-                <io.chaldeaprjkt.gamespace.widget.BatteryView
+                <com.android.gamespace.widget.BatteryView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="4dp"
@@ -82,7 +82,7 @@
                 </LinearLayout>
             </RelativeLayout>
 
-            <io.chaldeaprjkt.gamespace.widget.QuickStartAppView
+            <com.android.gamespace.widget.QuickStartAppView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -92,7 +92,7 @@
                     android:id="@+id/quick_start_app_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"/>
-            </io.chaldeaprjkt.gamespace.widget.QuickStartAppView>
+            </com.android.gamespace.widget.QuickStartAppView>
 
             <include layout="@layout/tiles" />
 

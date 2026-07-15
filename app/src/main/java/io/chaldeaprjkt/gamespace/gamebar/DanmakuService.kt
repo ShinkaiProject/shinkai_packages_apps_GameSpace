@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.chaldeaprjkt.gamespace.gamebar
+package com.android.gamespace.gamebar
 
 import android.animation.ValueAnimator
 import android.app.Notification
@@ -49,9 +49,9 @@ import java.util.LinkedList
 
 import javax.inject.Inject
 
-import io.chaldeaprjkt.gamespace.R
-import io.chaldeaprjkt.gamespace.data.AppSettings
-import io.chaldeaprjkt.gamespace.gamebar.DanmakuServiceListener
+import com.android.gamespace.R
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.gamebar.DanmakuServiceListener
 
 interface DanmakuServiceInterface {
     val danmakuNotificationMode: Boolean

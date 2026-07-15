@@ -24,7 +24,7 @@
     android:columnCount="4"
     android:orientation="horizontal">
 
-                 <io.chaldeaprjkt.gamespace.widget.TextMemoryView  
+                 <com.android.gamespace.widget.TextMemoryView  
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="4dp"
@@ -35,7 +35,7 @@
                     android:textColor="?android:attr/colorAccent"
                     android:textSize="11sp" />
                     
-                 <io.chaldeaprjkt.gamespace.widget.MemoryView
+                 <com.android.gamespace.widget.MemoryView
                     android:layout_width="52dp"
                     android:layout_gravity="center"
                     android:gravity="center"

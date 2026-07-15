@@ -15,7 +15,7 @@
   ~ limitations under the License
   -->
 <permissions>
-    <privapp-permissions package="io.chaldeaprjkt.gamespace">
+    <privapp-permissions package="com.android.gamespace">
         <permission name="android.permission.GET_TASKS" />
         <permission name="android.permission.INTERACT_ACROSS_USERS" />
         <permission name="android.permission.MANAGE_GAME_MODE" />
