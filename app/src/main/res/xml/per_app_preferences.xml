@@ -22,20 +22,25 @@
         android:key="headers"
         android:persistent="false" />
 
-    <ListPreference
-        android:defaultValue="1"
-        android:entries="@array/per_app_preferred_mode_entries"
-        android:entryValues="@array/per_app_preferred_mode_values"
-        android:key="per_app_preferred_mode"
-        android:persistent="false"
-        android:summary="%s"
-        android:title="@string/per_app_mode_title" />
+    <PreferenceCategory
+        android:key="per_app_options">
 
-    <androidx.preference.SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:key="per_app_use_angle"
-        android:summary="@string/per_app_angle_summary"
-        android:title="@string/per_app_angle_title" />
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/per_app_preferred_mode_entries"
+            android:entryValues="@array/per_app_preferred_mode_values"
+            android:key="per_app_preferred_mode"
+            android:persistent="false"
+            android:summary="%s"
+            android:title="@string/per_app_mode_title" />
+
+        <androidx.preference.SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="per_app_use_angle"
+            android:summary="@string/per_app_angle_summary"
+            android:title="@string/per_app_angle_title" />
+
+    </PreferenceCategory>
 
     <Preference
         android:icon="@drawable/ic_remove"

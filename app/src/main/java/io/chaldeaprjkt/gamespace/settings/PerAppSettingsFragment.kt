@@ -23,8 +23,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.preference.ListPreference
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.android.settingslib.widget.SettingsBasePreferenceFragment
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.data.GameConfig
@@ -33,7 +33,7 @@ import com.android.gamespace.data.UserGame
 import com.android.gamespace.utils.GameModeUtils
 import javax.inject.Inject
 
-@AndroidEntryPoint(PreferenceFragmentCompat::class)
+@AndroidEntryPoint(SettingsBasePreferenceFragment::class)
 class PerAppSettingsFragment : Hilt_PerAppSettingsFragment(),
     Preference.OnPreferenceChangeListener {
 

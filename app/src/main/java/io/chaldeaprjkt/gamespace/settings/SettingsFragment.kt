@@ -26,7 +26,7 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceFragmentCompat
+import com.android.settingslib.widget.SettingsBasePreferenceFragment
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.preferences.AppListPreferences
@@ -34,7 +34,7 @@ import com.android.gamespace.preferences.appselector.AppSelectorActivity
 import com.android.gamespace.preferences.QuickStartAppPreference
 import com.android.gamespace.preferences.QuickStartAppPreferenceDialogFragment
 
-@AndroidEntryPoint(PreferenceFragmentCompat::class)
+@AndroidEntryPoint(SettingsBasePreferenceFragment::class)
 class SettingsFragment : Hilt_SettingsFragment() {
 
     private var apps: AppListPreferences? = null
