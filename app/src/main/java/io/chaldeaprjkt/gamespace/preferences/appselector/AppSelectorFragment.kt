@@ -20,36 +20,33 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.SearchView
 import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.preference.Preference
+import androidx.preference.PreferenceScreen
+import com.android.settingslib.widget.SettingsBasePreferenceFragment
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.data.SystemSettings
 import com.android.gamespace.preferences.AppListPreferences
-import com.android.gamespace.preferences.appselector.adapter.AppsAdapter
 import javax.inject.Inject
 
-@AndroidEntryPoint(Fragment::class)
+@AndroidEntryPoint(SettingsBasePreferenceFragment::class)
 class AppSelectorFragment : Hilt_AppSelectorFragment(), SearchView.OnQueryTextListener,
     MenuItem.OnActionExpandListener {
+
     @Inject
     lateinit var settings: SystemSettings
 
-    private var appListView: RecyclerView? = null
-    private var appsAdapter: AppsAdapter? = null
     private var appBarLayout: AppBarLayout? = null
+    private val appPreferences = mutableListOf<Preference>()
 
     private val menuProvider = object : MenuProvider {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
@@ -64,63 +61,70 @@ class AppSelectorFragment : Hilt_AppSelectorFragment(), SearchView.OnQueryTextLi
         override fun onMenuItemSelected(menuItem: MenuItem) = false
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        super.onCreateView(inflater, container, savedInstanceState)
-        appBarLayout = activity?.findViewById(com.android.settingslib.collapsingtoolbar.R.id.app_bar)
-        return inflater.inflate(R.layout.app_selector, container, false)
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        val screen = preferenceManager.createPreferenceScreen(requireContext())
+        preferenceScreen = screen
+        loadApps(screen)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        appBarLayout = activity?.findViewById(com.android.settingslib.collapsingtoolbar.R.id.app_bar)
         activity?.addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
-        view.findViewById<RecyclerView>(R.id.app_list)?.apply {
-            setupAppListView(this)
-        }
     }
 
-    private fun setupAppListView(view: RecyclerView) {
-        appListView = view
+    private fun loadApps(screen: PreferenceScreen) {
+        val packageManager = requireContext().packageManager
         val flags = PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
-        val apps = view.context.packageManager
-            .getInstalledApplications(flags)
+        val apps = packageManager.getInstalledApplications(flags)
             .filter {
-                it.packageName != context?.packageName &&
+                it.packageName != requireContext().packageName &&
                         it.flags and ApplicationInfo.FLAG_SYSTEM == 0 &&
-                        !settings.userGames.any { t -> t.packageName == it.packageName }
+                        !settings.userGames.any { g -> g.packageName == it.packageName }
             }
-            .sortedBy { it.loadLabel(view.context.packageManager).toString().lowercase() }
+            .sortedBy { it.loadLabel(packageManager).toString().lowercase() }
 
-        appsAdapter = AppsAdapter(view.context.packageManager, apps)
-        view.adapter = appsAdapter
-        view.layoutManager = LinearLayoutManager(view.context)
-        appsAdapter?.onItemClick {
-            activity?.setResult(Activity.RESULT_OK, Intent().apply {
-                putExtra(AppListPreferences.EXTRA_APP, it.packageName)
-            })
-            activity?.finish()
+        appPreferences.clear()
+        for (appInfo in apps) {
+            val pref = Preference(requireContext()).apply {
+                key = appInfo.packageName
+                title = appInfo.loadLabel(packageManager)
+                summary = appInfo.packageName
+                icon = appInfo.loadIcon(packageManager)
+                isPersistent = false
+                setOnPreferenceClickListener {
+                    activity?.setResult(Activity.RESULT_OK, Intent().apply {
+                        putExtra(AppListPreferences.EXTRA_APP, appInfo.packageName)
+                    })
+                    activity?.finish()
+                    true
+                }
+            }
+            appPreferences.add(pref)
+            screen.addPreference(pref)
         }
     }
 
     override fun onQueryTextSubmit(query: String?) = false
 
     override fun onQueryTextChange(newText: String?): Boolean {
-        appsAdapter?.filterWith(newText)
+        val query = newText?.trim()?.lowercase().orEmpty()
+        appPreferences.forEach { pref ->
+            pref.isVisible = query.isEmpty() ||
+                    pref.title?.toString()?.lowercase()?.contains(query) == true
+        }
         return false
     }
 
     override fun onMenuItemActionExpand(item: MenuItem): Boolean {
         appBarLayout?.setExpanded(false, false)
-        appListView?.let { ViewCompat.setNestedScrollingEnabled(it, false) }
+        listView?.let { ViewCompat.setNestedScrollingEnabled(it, false) }
         return true
     }
 
     override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
         appBarLayout?.setExpanded(false, false)
-        appListView?.let { ViewCompat.setNestedScrollingEnabled(it, true) }
+        listView?.let { ViewCompat.setNestedScrollingEnabled(it, true) }
         return true
     }
 }
