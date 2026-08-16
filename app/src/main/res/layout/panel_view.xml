@@ -81,6 +81,66 @@
 
                 </LinearLayout>
             </RelativeLayout>
+ 
+            <!-- Wrapper Brightness Slider Horizontal -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Ikon Brightness -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="0dp" 
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/ic_brightness" 
+                    android:clickable="false"
+                    android:focusable="false"
+                    app:tint="?android:attr/textColorPrimaryInverse" />
+
+                <com.android.gamespace.widget.BrightnessSliderView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:progressDrawable="@drawable/slider_track"
+                    android:thumb="@drawable/slider_thumb"
+                    android:thumbOffset="0dp"
+                    android:splitTrack="false"
+                    android:background="@null" />
+            </LinearLayout>
+
+            <!-- Wrapper Volume Slider Horizontal -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="0dp" 
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Ikon Volume -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="0dp" 
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/ic_volume"
+                    android:clickable="false"
+                    android:focusable="false"
+                    app:tint="?android:attr/textColorPrimaryInverse" />
+
+                <com.android.gamespace.widget.VolumeSliderView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:progressDrawable="@drawable/slider_track"
+                    android:thumb="@drawable/slider_thumb"
+                    android:thumbOffset="0dp"
+                    android:splitTrack="false"
+                    android:background="@null" />
+            </LinearLayout>
 
             <com.android.gamespace.widget.QuickStartAppView
                 android:layout_width="match_parent"
