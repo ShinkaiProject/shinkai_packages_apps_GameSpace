@@ -48,6 +48,16 @@
             android:src="@drawable/ic_panel" />
 
         <ImageButton
+            android:id="@+id/action_sidebar"
+            android:layout_width="@dimen/actions_size"
+            android:layout_height="@dimen/actions_size"
+            android:layout_marginTop="5dp"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:tint="@color/onBarBackground"
+            android:src="@drawable/ic_action_sidebar" />
+
+        <ImageButton
             android:id="@+id/action_screenshot"
             android:layout_width="@dimen/actions_size"
             android:layout_height="@dimen/actions_size"

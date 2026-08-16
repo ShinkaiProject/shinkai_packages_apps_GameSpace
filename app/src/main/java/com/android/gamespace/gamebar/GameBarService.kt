@@ -44,6 +44,7 @@ import com.android.gamespace.widget.MenuSwitcher
 import com.android.gamespace.widget.PanelView
 import javax.inject.Inject
 import kotlin.reflect.KProperty0
+import android.os.UserHandle
 
 @AndroidEntryPoint(Service::class)
 class GameBarService : Hilt_GameBarService() {
@@ -270,6 +271,7 @@ class GameBarService : Hilt_GameBarService() {
         dockCollapsedMenu()
         menuSwitcherButton()
         panelButton()
+        sidebarButton()
         screenshotButton()
         recorderButton()
     }
@@ -397,6 +399,21 @@ class GameBarService : Hilt_GameBarService() {
             startActivity(Intent(this, SettingsActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             true
         }
+    }
+
+    private fun sidebarButton() {
+        rootBarView.findViewById<ImageButton>(R.id.action_sidebar).apply {
+            alpha = appSettings.menuOpacity / 100f
+            setOnClickListener { openSidebar() }
+        }
+    }
+
+    private fun openSidebar() {
+        val intent = Intent("com.android.gamespace.action.SHOW_SIDEBAR").apply {
+            setPackage("com.libremobileos.sidebar")
+        }
+        sendBroadcastAsUser(intent, UserHandle.CURRENT, android.Manifest.permission.MANAGE_GAME_MODE)
+        barExpanded = false
     }
 
     private fun screenshotButton() {
