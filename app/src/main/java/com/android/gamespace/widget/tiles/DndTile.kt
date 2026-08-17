@@ -1,5 +1,6 @@
 package com.android.gamespace.widget.tiles
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -9,9 +10,13 @@ import android.util.AttributeSet
 import android.view.View
 import com.android.gamespace.R
 
-class AirplaneModeTile @JvmOverloads constructor(
+class DndTile @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : BaseTile(context, attrs) {
+
+    private val notificationManager: NotificationManager? by lazy {
+        context.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+    }
 
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -21,10 +26,13 @@ class AirplaneModeTile @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        title?.text = context.getString(R.string.airplane_mode_title)
-        icon?.setImageResource(R.drawable.ic_airplane)
+        title?.text = context.getString(R.string.dnd_title)
+        icon?.setImageResource(R.drawable.ic_dnd)
         refreshState()
-        context.registerReceiver(stateReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
+        context.registerReceiver(
+            stateReceiver,
+            IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
+        )
     }
 
     override fun onDetachedFromWindow() {
@@ -32,30 +40,26 @@ class AirplaneModeTile @JvmOverloads constructor(
         runCatching { context.unregisterReceiver(stateReceiver) }
     }
 
-    private fun isAirplaneModeOn() =
-        Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
-
     private fun refreshState() {
-        val enabled = isAirplaneModeOn()
+        val enabled = notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
         summary?.text = context.getString(if (enabled) R.string.state_enabled else R.string.state_disabled)
         isSelected = enabled
     }
 
     override fun onClick(v: View?) {
         super.onClick(v)
-        val target = !isAirplaneModeOn()
+        val target = notificationManager?.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL
+        val newFilter = if (target) NotificationManager.INTERRUPTION_FILTER_PRIORITY
+                        else NotificationManager.INTERRUPTION_FILTER_ALL
         summary?.text = context.getString(if (target) R.string.state_enabled else R.string.state_disabled)
         isSelected = target
         Thread {
-            Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, if (target) 1 else 0)
-            val intent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-            intent.putExtra("state", target)
-            context.sendBroadcast(intent)
+            runCatching { notificationManager?.setInterruptionFilter(newFilter) }
         }.start()
     }
 
     override fun onLongClick(v: View?): Boolean {
-        openSettings(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
+        openSettings(Settings.ACTION_ZEN_MODE_SETTINGS)
         return true
     }
 }

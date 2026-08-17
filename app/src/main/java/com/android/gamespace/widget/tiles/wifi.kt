@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.wifi.WifiManager
+import android.provider.Settings
 import android.util.AttributeSet
 import android.view.View
 import com.android.gamespace.R
@@ -45,9 +46,13 @@ class WifiTile @JvmOverloads constructor(
     override fun onClick(v: View?) {
         super.onClick(v)
         val target = !wifiManager.isWifiEnabled
-        // tampilan langsung berubah, gak nunggu radio selesai
         summary?.text = context.getString(if (target) R.string.state_enabled else R.string.state_disabled)
         isSelected = target
         Thread { wifiManager.isWifiEnabled = target }.start()
+    }
+
+    override fun onLongClick(v: View?): Boolean {
+        openSettings(Settings.ACTION_WIFI_SETTINGS)
+        return true
     }
 }

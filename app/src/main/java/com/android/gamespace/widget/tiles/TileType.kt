@@ -13,7 +13,8 @@ enum class TileType(
     WIFI("wifi", { WifiTile(it) }),
     BLUETOOTH("bluetooth", { BluetoothTile(it) }),
     MOBILE_DATA("mobile_data", { MobileDataTile(it) }),
-    AIRPLANE_MODE("airplane_mode", { AirplaneModeTile(it) });
+    AIRPLANE_MODE("airplane_mode", { AirplaneModeTile(it) }),
+    DND("dnd", { DndTile(it) });
 
     companion object {
         fun fromId(id: String) = entries.find { it.id == id }

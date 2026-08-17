@@ -1,6 +1,7 @@
 package com.android.gamespace.widget.tiles
 
 import android.content.Context
+import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.AttributeSet
 import android.view.View
@@ -33,5 +34,10 @@ class MobileDataTile @JvmOverloads constructor(
         summary?.text = context.getString(if (target) R.string.state_enabled else R.string.state_disabled)
         isSelected = target
         Thread { telephonyManager.isDataEnabled = target }.start()
+    }
+
+    override fun onLongClick(v: View?): Boolean {
+        openSettings(Settings.ACTION_NETWORK_OPERATOR_SETTINGS)
+        return true
     }
 }

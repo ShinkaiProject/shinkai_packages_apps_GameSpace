@@ -126,4 +126,5 @@
      <string name="bluetooth_title">Bluetooth</string>
      <string name="mobile_data_title">Data Seluler</string>
      <string name="airplane_mode_title">Mode Pesawat</string>
+     <string name="dnd_title">Mode DND</string>
 </resources>

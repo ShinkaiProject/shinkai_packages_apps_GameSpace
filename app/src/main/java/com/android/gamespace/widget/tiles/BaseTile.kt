@@ -1,21 +1,7 @@
-/*
- * Copyright (C) 2021 Chaldeaprjkt
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.android.gamespace.widget.tiles
 
 import android.content.Context
+import android.content.Intent
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -29,7 +15,7 @@ import com.android.gamespace.utils.entryPointOf
 
 abstract class BaseTile @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
-) : LinearLayout(context, attrs), View.OnClickListener {
+) : LinearLayout(context, attrs), View.OnClickListener, View.OnLongClickListener {
     init {
         isClickable = true
         isFocusable = true
@@ -52,10 +38,18 @@ abstract class BaseTile @JvmOverloads constructor(
         LayoutInflater.from(context)
             .inflate(R.layout.panel_tile, this, true)
         setOnClickListener(this)
+        setOnLongClickListener(this)
     }
 
     override fun onClick(v: View?) {
         isSelected = !isSelected
     }
 
+    override fun onLongClick(v: View?): Boolean = false
+
+    protected fun openSettings(action: String) {
+        runCatching {
+            context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
 }
