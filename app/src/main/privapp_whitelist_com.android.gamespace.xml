@@ -31,5 +31,6 @@
         <permission name="android.permission.READ_PHONE_STATE"/>
         <permission name="android.permission.FOREGROUND_SERVICE" />
         <permission name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+        <permission name="android.permission.MODIFY_PHONE_STATE" />
     </privapp-permissions>
 </permissions>

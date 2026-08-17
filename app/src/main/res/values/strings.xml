@@ -121,5 +121,9 @@
     
      <string name="gamespace_running">Game Space is running</string>
 
+     <!-- tiles -->
      <string name="wifi_title">Wi-Fi</string>
+     <string name="bluetooth_title">Bluetooth</string>
+     <string name="mobile_data_title">Data Seluler</string>
+     <string name="airplane_mode_title">Mode Pesawat</string>
 </resources>

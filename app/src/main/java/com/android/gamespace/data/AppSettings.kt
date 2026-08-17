@@ -93,6 +93,6 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_MENU_OPACITY = "gamespace_menu_opacity"
         const val KEY_AUTO_DND = "gamespace_auto_dnd"
         const val KEY_SELECTED_TILES = "gamespace_selected_tiles"
-        const val DEFAULT_TILES = "game_mode,fps_info,stay_awake,lock_gesture,wifi"
+        const val DEFAULT_TILES = "game_mode,fps_info,stay_awake,lock_gesture,wifi,bluetooth,mobile_data,airplane_mode"
     }
 }

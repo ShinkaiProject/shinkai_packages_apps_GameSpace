@@ -10,7 +10,10 @@ enum class TileType(
     FPS_INFO("fps_info", { FPSInfoTile(it) }),
     STAY_AWAKE("stay_awake", { StayAwakeTile(it) }),
     LOCK_GESTURE("lock_gesture", { LockGestureTile(it) }),
-    WIFI("wifi", { WifiTile(it) });
+    WIFI("wifi", { WifiTile(it) }),
+    BLUETOOTH("bluetooth", { BluetoothTile(it) }),
+    MOBILE_DATA("mobile_data", { MobileDataTile(it) }),
+    AIRPLANE_MODE("airplane_mode", { AirplaneModeTile(it) });
 
     companion object {
         fun fromId(id: String) = entries.find { it.id == id }
