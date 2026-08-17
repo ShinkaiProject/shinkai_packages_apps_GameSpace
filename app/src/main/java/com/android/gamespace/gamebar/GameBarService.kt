@@ -115,6 +115,7 @@ class GameBarService : Hilt_GameBarService() {
                 if (!::rootPanelView.isInitialized) {
                     setupPanelView()
                 }
+                updatePanelGravity()
                 if (!rootPanelView.isAttachedToWindow) {
                     wm.addView(rootPanelView, panelLayoutParam)
                     rootPanelView.fadeIn()
@@ -335,7 +336,9 @@ class GameBarService : Hilt_GameBarService() {
         panelView.alpha = appSettings.menuOpacity / 100f
 
         rootPanelView.setOnClickListener { showPanel = false }
+    }
 
+    private fun updatePanelGravity() {
         val barWidth = barView.width + barView.marginStart
         if (barLayoutParam.x < 0) {
             rootPanelView.gravity = Gravity.START
