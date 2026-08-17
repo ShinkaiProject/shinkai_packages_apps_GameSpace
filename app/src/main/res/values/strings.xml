@@ -120,4 +120,6 @@
     <string name="bypass_charge_enabled_title">Enable bypass charging while playing games</string>
     
      <string name="gamespace_running">Game Space is running</string>
+
+     <string name="wifi_title">Wi-Fi</string>
 </resources>

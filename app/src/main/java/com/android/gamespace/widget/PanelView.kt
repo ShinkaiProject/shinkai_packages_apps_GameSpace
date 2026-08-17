@@ -29,10 +29,13 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.LinearLayout
 import androidx.core.view.doOnLayout
+import androidx.viewpager2.widget.ViewPager2
 import com.android.gamespace.R
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.entryPointOf
+import com.android.gamespace.widget.tiles.TileType
+import com.android.gamespace.widget.tiles.TilePagerAdapter
 
 class PanelView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -63,6 +66,13 @@ class PanelView @JvmOverloads constructor(
         super.onAttachedToWindow()
         updateTranslationY()
         batteryTemperature()
+        populateTiles()
+    }
+
+    private fun populateTiles() {
+        val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
+        val pages = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }.chunked(4)
+        pager.adapter = TilePagerAdapter(context, pages)
     }
 
     private fun batteryTemperature() {

@@ -78,6 +78,10 @@ class AppSettings @Inject constructor(private val context: Context) {
         get() = db.getBoolean(KEY_AUTO_DND, false)
         set(value) = db.edit().putBoolean(KEY_AUTO_DND, value).apply()
 
+    var selectedTiles: List<String>
+        get() = db.getString(KEY_SELECTED_TILES, DEFAULT_TILES)!!.split(",")
+        set(value) = db.edit().putString(KEY_SELECTED_TILES, value.joinToString(",")).apply()
+
     companion object {
         const val KEY_AUTO_BRIGHTNESS_DISABLE = "gamespace_auto_brightness_disabled"
         const val KEY_3SCREENSHOT_DISABLE = "gamespace_tfgesture_disabled"
@@ -88,5 +92,7 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_LOCK_GESTURE = "gamespace_lock_gesture"
         const val KEY_MENU_OPACITY = "gamespace_menu_opacity"
         const val KEY_AUTO_DND = "gamespace_auto_dnd"
+        const val KEY_SELECTED_TILES = "gamespace_selected_tiles"
+        const val DEFAULT_TILES = "game_mode,fps_info,stay_awake,lock_gesture,wifi"
     }
 }
