@@ -92,7 +92,7 @@
                     android:id="@+id/controls_flipper"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="20dp"
+                    android:layout_marginEnd="8dp"
                     android:inAnimation="@android:anim/slide_in_left"
                     android:outAnimation="@android:anim/slide_out_right">
 
@@ -105,7 +105,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_gravity="center_vertical|end"
-                    android:layout_marginEnd="-6dp"
+                    android:layout_marginEnd="-3dp"
                     android:padding="4dp"
                     android:src="@drawable/ic_chevron_right"
                     app:tint="?android:attr/textColorPrimaryInverse" />

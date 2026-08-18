@@ -1,10 +1,14 @@
 package com.android.gamespace.widget
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -32,6 +36,7 @@ class NowPlayingController(private val context: Context, private val root: View)
     private val seekbar: SeekBar = root.findViewById(R.id.media_seekbar)
     private val sourceIcon: ImageView = root.findViewById(R.id.media_source_icon)
     private val artBackground: ImageView = root.findViewById(R.id.media_art_background)
+    private val colorWash: View = root.findViewById(R.id.media_color_wash)
     private val likeBtn: ImageView = root.findViewById(R.id.media_like)
     private val repeatBtn: ImageView = root.findViewById(R.id.media_repeat)
 
@@ -58,6 +63,7 @@ class NowPlayingController(private val context: Context, private val root: View)
         }
 
     fun start() {
+        applyMonetColor()
         runCatching { sessionManager.addOnActiveSessionsChangedListener(sessionsChangedListener, null) }
         pickActiveSession()
         handler.post(progressRunnable)
@@ -147,5 +153,28 @@ class NowPlayingController(private val context: Context, private val root: View)
 
     private fun refreshRepeatState(active: Boolean) {
         repeatBtn.alpha = if (active) 1f else 0.5f
+    }
+
+    private fun applyMonetColor() {
+        val color = resolveMonetAccentColor()
+        colorWash.setBackgroundColor(Color.argb(60, Color.red(color), Color.green(color), Color.blue(color)))
+        (playPause.background?.mutate() as? GradientDrawable)?.setColor(color)
+        val iconColor = if (isColorLight(color)) Color.BLACK else Color.WHITE
+        playPause.imageTintList = ColorStateList.valueOf(iconColor)
+    }
+
+    private fun resolveMonetAccentColor(): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val resId = context.resources.getIdentifier("system_accent1_500", "color", "android")
+            if (resId != 0) {
+                return runCatching { context.getColor(resId) }.getOrDefault(Color.parseColor("#E8710A"))
+            }
+        }
+        return Color.parseColor("#E8710A")
+    }
+
+    private fun isColorLight(color: Int): Boolean {
+        val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
+        return luminance > 0.5
     }
 }
