@@ -127,4 +127,7 @@
      <string name="mobile_data_title">Data Seluler</string>
      <string name="airplane_mode_title">Mode Pesawat</string>
      <string name="dnd_title">Mode DND</string>
+
+     <!-- Music Control -->
+     <string name="media_no_session">Tidak ada media yang diputar</string>
 </resources>

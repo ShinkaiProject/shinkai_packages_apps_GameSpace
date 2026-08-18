@@ -48,6 +48,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
 
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+
     <application
         android:name=".GameSpace"
         android:label="@string/settings_title"
