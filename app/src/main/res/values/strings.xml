@@ -16,6 +16,7 @@
   -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="category_quick_start">Quick Start</string>
     <string name="quick_start_apps_title">Quick Start Apps</string>
     <string name="quick_start_apps_summary">Select apps to launch quickly</string>
     <string name="settings_title">Game Space</string>

@@ -99,10 +99,16 @@
 
     </PreferenceCategory>
 
-    <com.android.gamespace.preferences.QuickStartAppPreference
-        android:key="quick_start_apps"
-        android:title="@string/quick_start_apps_title"
-        android:summary="@string/quick_start_apps_summary" />
+    <PreferenceCategory
+        android:key="quick_start_category"
+        android:title="@string/category_quick_start">
+
+        <com.android.gamespace.preferences.QuickStartAppPreference
+            android:key="quick_start_apps"
+            android:title="@string/quick_start_apps_title"
+            android:summary="@string/quick_start_apps_summary" />
+
+    </PreferenceCategory>
 
     <com.android.gamespace.preferences.AppListPreferences
         android:key="gamespace_game_list"
