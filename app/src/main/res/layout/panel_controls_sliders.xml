@@ -14,14 +14,17 @@
         android:orientation="horizontal">
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:id="@+id/brightness_icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginEnd="0dp"
             android:layout_marginStart="8dp"
+            android:padding="8dp"
             android:src="@drawable/ic_brightness"
-            android:clickable="false"
-            android:focusable="false"
-            app:tint="?android:attr/textColorPrimaryInverse" />
+            android:background="@drawable/bg_slider_icon"
+            android:clickable="true"
+            android:focusable="true"
+            app:tint="@android:color/system_accent1_900" />
 
         <com.android.gamespace.widget.BrightnessSliderView
             android:layout_width="0dp"
@@ -43,14 +46,17 @@
         android:orientation="horizontal">
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:id="@+id/volume_icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginEnd="0dp"
             android:layout_marginStart="8dp"
+            android:padding="8dp"
             android:src="@drawable/ic_volume"
-            android:clickable="false"
-            android:focusable="false"
-            app:tint="?android:attr/textColorPrimaryInverse" />
+            android:background="@drawable/bg_slider_icon"
+            android:clickable="true"
+            android:focusable="true"
+            app:tint="@android:color/system_accent1_900" />
 
         <com.android.gamespace.widget.VolumeSliderView
             android:layout_width="0dp"

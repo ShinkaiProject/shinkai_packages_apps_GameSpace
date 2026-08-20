@@ -4,7 +4,9 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioManager
 import android.os.BatteryManager
+import android.provider.Settings
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.ImageView
@@ -56,6 +58,7 @@ class PanelView @JvmOverloads constructor(
         batteryTemperature()
         populateTiles()
         setupControlsFlipper()
+        setupSliderIcons()
     }
 
     override fun onDetachedFromWindow() {
@@ -87,5 +90,65 @@ class PanelView @JvmOverloads constructor(
         val degree = "\u2103"
         val batteryTemp:TextView = requireViewById(R.id.batteryTemp)
         batteryTemp.text = "$temp$degree"
+    }
+
+    private fun setupSliderIcons() {
+        val brightnessIcon = requireViewById<ImageView>(R.id.brightness_icon)
+        val volumeIcon = requireViewById<ImageView>(R.id.volume_icon)
+
+        refreshBrightnessIcon(brightnessIcon)
+        brightnessIcon.setOnClickListener {
+            toggleAutoBrightness()
+            refreshBrightnessIcon(brightnessIcon)
+        }
+
+        refreshVolumeIcon(volumeIcon)
+        volumeIcon.setOnClickListener {
+            cycleRingerMode()
+            refreshVolumeIcon(volumeIcon)
+        }
+    }
+
+    private fun toggleAutoBrightness() {
+        val resolver = context.contentResolver
+        val current = Settings.System.getInt(
+            resolver, Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        )
+        val next = if (current == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC) {
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        } else {
+            Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
+        }
+        Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE, next)
+    }
+
+    private fun refreshBrightnessIcon(icon: ImageView) {
+        val isAuto = Settings.System.getInt(
+            context.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        ) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
+        // Auto aktif = ikon full opacity, manual = agak redup, badge bulatnya tetap sama
+        icon.alpha = if (isAuto) 1f else 0.55f
+    }
+
+    private fun cycleRingerMode() {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.ringerMode = when (audioManager.ringerMode) {
+            AudioManager.RINGER_MODE_NORMAL -> AudioManager.RINGER_MODE_SILENT
+            AudioManager.RINGER_MODE_SILENT -> AudioManager.RINGER_MODE_VIBRATE
+            else -> AudioManager.RINGER_MODE_NORMAL
+        }
+    }
+
+    private fun refreshVolumeIcon(icon: ImageView) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        icon.setImageResource(
+            when (audioManager.ringerMode) {
+                AudioManager.RINGER_MODE_SILENT -> R.drawable.ic_volume_off
+                AudioManager.RINGER_MODE_VIBRATE -> R.drawable.ic_vibration
+                else -> R.drawable.ic_volume
+            }
+        )
     }
 }

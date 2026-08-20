@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M3 filled-tonal icon button: container = primary tonal palette tone 90, ripple = tone 10 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@android:color/system_accent1_900">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/system_accent1_100" />
+        </shape>
+    </item>
+</ripple>
