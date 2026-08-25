@@ -101,10 +101,11 @@
                 <SeekBar
                     android:id="@+id/media_seekbar"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="24dp"
                     android:layout_weight="1"
                     android:layout_marginHorizontal="4dp"
-                    android:progressDrawable="@drawable/slider_track"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
                     android:thumb="@drawable/slider_thumb"
                     android:thumbOffset="0dp"
                     android:splitTrack="false"

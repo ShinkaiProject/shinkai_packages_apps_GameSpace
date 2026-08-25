@@ -30,6 +30,8 @@ class NowPlayingController(private val context: Context, private val root: View)
     private var isRepeatOn = false
     private var badgeIconTint: Int = Color.WHITE
 
+    private val squigglyDrawable = SquigglyProgressDrawable()
+
     private val title: TextView = root.findViewById(R.id.media_title)
     private val artist: TextView = root.findViewById(R.id.media_artist)
     private val playPause: ImageView = root.findViewById(R.id.media_play_pause)
@@ -44,7 +46,16 @@ class NowPlayingController(private val context: Context, private val root: View)
 
     private val progressRunnable = object : Runnable {
         override fun run() {
-            activeController?.playbackState?.let { seekbar.progress = it.position.toInt() }
+            activeController?.let { controller ->
+                val state = controller.playbackState
+                val position = state?.position ?: 0L
+                val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 1L
+                
+                seekbar.progress = position.toInt()
+                
+                squigglyDrawable.progress = if (duration > 0) position.toFloat() / duration.toFloat() else 0f
+                squigglyDrawable.animateWave = state?.state == PlaybackState.STATE_PLAYING
+            }
             handler.postDelayed(this, 500L)
         }
     }
@@ -66,6 +77,9 @@ class NowPlayingController(private val context: Context, private val root: View)
 
     fun start() {
         applyMonetColor()
+        
+        seekbar.progressDrawable = squigglyDrawable
+        
         runCatching { sessionManager.addOnActiveSessionsChangedListener(sessionsChangedListener, null) }
         pickActiveSession()
         handler.post(progressRunnable)
@@ -79,7 +93,13 @@ class NowPlayingController(private val context: Context, private val root: View)
         prevBtn.setOnClickListener { activeController?.transportControls?.skipToPrevious() }
         seekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) activeController?.transportControls?.seekTo(progress.toLong())
+                if (fromUser) {
+                    activeController?.transportControls?.seekTo(progress.toLong())
+                    val duration = seekbar.max
+                    if (duration > 0) {
+                        squigglyDrawable.progress = progress.toFloat() / duration.toFloat()
+                    }
+                }
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
@@ -126,7 +146,9 @@ class NowPlayingController(private val context: Context, private val root: View)
         title.text = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: context.getString(R.string.media_no_session)
         artist.text = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty()
-        seekbar.max = (metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L).toInt().coerceAtLeast(0)
+        
+        val duration = (metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L).toInt().coerceAtLeast(0)
+        seekbar.max = duration
 
         val art = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
@@ -137,7 +159,13 @@ class NowPlayingController(private val context: Context, private val root: View)
     private fun refreshPlaybackState(state: PlaybackState?) {
         val playing = state?.state == PlaybackState.STATE_PLAYING
         playPause.setImageResource(if (playing) R.drawable.ic_media_pause else R.drawable.ic_media_play)
-        seekbar.progress = (state?.position ?: 0L).toInt()
+        
+        val position = state?.position ?: 0L
+        seekbar.progress = position.toInt()
+        
+        val duration = seekbar.max
+        squigglyDrawable.progress = if (duration > 0) position.toFloat() / duration.toFloat() else 0f
+        squigglyDrawable.animateWave = playing
 
         likeBtn.visibility = if (findCustomAction(state, "like", "favorite", "thumbs_up") != null) View.VISIBLE else View.GONE
         repeatBtn.visibility = if (findCustomAction(state, "repeat", "loop") != null) View.VISIBLE else View.GONE
