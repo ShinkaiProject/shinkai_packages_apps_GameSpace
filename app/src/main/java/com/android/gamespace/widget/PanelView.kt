@@ -7,7 +7,10 @@ import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.BatteryManager
 import android.provider.Settings
+import android.transition.ChangeBounds
+import android.transition.TransitionManager
 import android.util.AttributeSet
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.LayoutInflater
 import android.widget.ImageView
 import android.widget.TextView
@@ -67,10 +70,18 @@ class PanelView @JvmOverloads constructor(
         nowPlaying = null
     }
 
+    private val panelContentTransition = ChangeBounds().apply {
+        duration = 200L
+        interpolator = AccelerateDecelerateInterpolator()
+    }
+
     private fun setupControlsFlipper() {
         val flipper = requireViewById<ViewFlipper>(R.id.controls_flipper)
+        flipper.setMeasureAllChildren(false)
+        val contentContainer = requireViewById<ViewGroup>(R.id.panel_content_container)
         val arrow = requireViewById<ImageView>(R.id.controls_nav_arrow)
         arrow.setOnClickListener {
+            TransitionManager.beginDelayedTransition(contentContainer, panelContentTransition)
             flipper.showNext()
             arrow.animate().rotationBy(180f).setDuration(200L).start()
         }
@@ -128,7 +139,6 @@ class PanelView @JvmOverloads constructor(
             context.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE,
             Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
         ) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
-        // Auto aktif = ikon full opacity, manual = agak redup, badge bulatnya tetap sama
         icon.alpha = if (isAuto) 1f else 0.55f
     }
 

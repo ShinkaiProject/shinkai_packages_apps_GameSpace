@@ -200,6 +200,7 @@ public class QuickStartAppView extends LinearLayout {
         @Override
         public void onBindViewHolder(RecyclerHolder holder, int position) {
             setupAppIcon(holder.imageView, dataList.get(position));
+            holder.itemView.setVisibility(holder.imageView.getVisibility());
         }
 
         @Override
