@@ -3,6 +3,7 @@ package com.android.gamespace.widget
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -27,6 +28,7 @@ class NowPlayingController(private val context: Context, private val root: View)
     private var activeController: MediaController? = null
     private var isLiked = false
     private var isRepeatOn = false
+    private var badgeIconTint: Int = Color.WHITE
 
     private val title: TextView = root.findViewById(R.id.media_title)
     private val artist: TextView = root.findViewById(R.id.media_artist)
@@ -147,7 +149,18 @@ class NowPlayingController(private val context: Context, private val root: View)
             return
         }
         runCatching {
-            sourceIcon.setImageDrawable(context.packageManager.getApplicationIcon(controller.packageName))
+            val appIcon = context.packageManager.getApplicationIcon(controller.packageName)
+            val monochrome = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                (appIcon as? AdaptiveIconDrawable)?.monochrome
+            } else null
+
+            if (monochrome != null) {
+                val tinted = monochrome.mutate()
+                tinted.setTint(badgeIconTint)
+                sourceIcon.setImageDrawable(tinted)
+            } else {
+                sourceIcon.setImageDrawable(appIcon)
+            }
         }
     }
 
@@ -161,6 +174,8 @@ class NowPlayingController(private val context: Context, private val root: View)
         (playPause.background?.mutate() as? GradientDrawable)?.setColor(color)
         val iconColor = if (isColorLight(color)) Color.BLACK else Color.WHITE
         playPause.imageTintList = ColorStateList.valueOf(iconColor)
+
+        badgeIconTint = resolveBadgeIconTint()
     }
 
     private fun resolveMonetAccentColor(): Int {
@@ -171,6 +186,16 @@ class NowPlayingController(private val context: Context, private val root: View)
             }
         }
         return Color.parseColor("#E8710A")
+    }
+
+    private fun resolveBadgeIconTint(): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val resId = context.resources.getIdentifier("system_accent1_50", "color", "android")
+            if (resId != 0) {
+                return runCatching { context.getColor(resId) }.getOrDefault(Color.WHITE)
+            }
+        }
+        return Color.WHITE
     }
 
     private fun isColorLight(color: Int): Boolean {
