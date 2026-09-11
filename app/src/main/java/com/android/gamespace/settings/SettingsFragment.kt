@@ -27,6 +27,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import com.android.settingslib.widget.SettingsBasePreferenceFragment
+import com.android.settingslib.widget.SliderPreference
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.preferences.AppListPreferences
@@ -81,6 +82,14 @@ class SettingsFragment : Hilt_SettingsFragment() {
                 selectorResult.launch(Intent(context, AppSelectorActivity::class.java))
                 return@setOnPreferenceClickListener true
             }
+
+        findPreference<SliderPreference>("gamespace_bar_auto_hide_delay_sec")?.also { pref ->
+            pref.title = getString(R.string.gamespace_bar_auto_hide_delay_value, pref.value)
+            pref.setOnPreferenceChangeListener { _, newValue ->
+                pref.title = getString(R.string.gamespace_bar_auto_hide_delay_value, newValue as Int)
+                true
+            }
+        }
     }
 
     override fun onResume() {

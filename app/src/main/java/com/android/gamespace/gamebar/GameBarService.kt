@@ -45,6 +45,9 @@ import com.android.gamespace.widget.PanelView
 import javax.inject.Inject
 import kotlin.reflect.KProperty0
 import android.os.UserHandle
+import android.transition.AutoTransition
+import android.transition.TransitionManager
+import android.view.animation.DecelerateInterpolator
 
 @AndroidEntryPoint(Service::class)
 class GameBarService : Hilt_GameBarService() {
@@ -95,6 +98,7 @@ class GameBarService : Hilt_GameBarService() {
     private lateinit var panelView: PanelView
 
     private val binder = GameBarBinder()
+    private val autoCollapseRunnable = Runnable { barExpanded = false }
     private val firstPaint = Runnable { initActions() }
     private var shouldClose = false
     private var isGameStarting = false
@@ -102,16 +106,25 @@ class GameBarService : Hilt_GameBarService() {
     private var barExpanded = false
         set(value) {
             field = value
+            TransitionManager.beginDelayedTransition(
+                barView,
+                AutoTransition().apply {
+                    duration = 220L
+                    interpolator = DecelerateInterpolator()
+                }
+            )
             menuSwitcher.updateIconState(value, barLayoutParam.x)
             barView.children.forEach { if (it.id != R.id.action_menu_switcher) it.isVisible = value }
             updateBackground()
             updateContainerGaps()
+            if (value) scheduleAutoCollapse() else handler.removeCallbacks(autoCollapseRunnable)
         }
 
     private var showPanel = false
         set(value) {
             field = value
             if (value) {
+                handler.removeCallbacks(autoCollapseRunnable)
                 if (!::rootPanelView.isInitialized) {
                     setupPanelView()
                 }
@@ -131,6 +144,7 @@ class GameBarService : Hilt_GameBarService() {
                         }, 50)
                     }
                 }
+                if (barExpanded) scheduleAutoCollapse()
             }
         }
 
@@ -327,6 +341,12 @@ class GameBarService : Hilt_GameBarService() {
         }
     }
 
+    private fun scheduleAutoCollapse() {
+        handler.removeCallbacks(autoCollapseRunnable)
+        if (!appSettings.barAutoHideEnabled || showPanel) return
+        handler.postDelayed(autoCollapseRunnable, appSettings.barAutoHideDelaySec * 1000L)
+    }
+
     private fun setupPanelView() {
         rootPanelView = inflater.inflate(R.layout.window_panel, FrameLayout(this), false) as LinearLayout
         rootPanelView.alpha = 0f
@@ -383,6 +403,7 @@ class GameBarService : Hilt_GameBarService() {
                     this.y = y
                 }
                 updateBackground()
+                if (barExpanded) scheduleAutoCollapse()
             },
             onComplete = {
                 menuSwitcher.isDragged = false
