@@ -111,6 +111,7 @@ class GameBarService : Hilt_GameBarService() {
                 AutoTransition().apply {
                     duration = 220L
                     interpolator = DecelerateInterpolator()
+                    excludeTarget(menuSwitcher, true)
                 }
             )
             menuSwitcher.updateIconState(value, barLayoutParam.x)

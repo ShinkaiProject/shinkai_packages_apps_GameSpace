@@ -89,6 +89,7 @@ class MenuSwitcher @JvmOverloads constructor(
             R.drawable.ic_close, R.drawable.ic_drag -> layoutParams.width = 36.dp
             else -> layoutParams.width = LayoutParams.WRAP_CONTENT
         }
+        requestLayout()
         val ic = icon?.takeIf { !showFps }?.let { resources.getDrawable(it, context.theme) }
         content?.textScaleX = if (showFps) 1f else 0f
         content?.setCompoundDrawablesRelativeWithIntrinsicBounds(null, ic, null, null)
