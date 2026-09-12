@@ -83,4 +83,42 @@
     <!-- Danmaku Notification Mode -->
     <string name="danmaku_notification_mode_title">Mode Pemberitahuan Danmaku</string>
     <string name="danmaku_notification_mode_summary">Tampilkan notifikasi sebagai danmaku alias komentar bullet saat permainan aktif</string>
+
+    <!-- Auto DND -->
+    <string name="auto_dnd_title">Jangan Ganggu Otomatis</string>
+    <string name="auto_dnd_summary">Secara Otomatis Mengaktifkan Mode Jangan Ganggu Saat Bermain Game dan Menonaktifkan Setelah Selesai.</string>
+
+    <!-- Bypass charging -->
+    <string name="bypass_charge_enabled_summary">Lewati Pengisian Daya</string>
+    <string name="bypass_charge_enabled_title">Mengaktifkan Lewati Pengisian Daya Ketika Bermain Game</string>
+
+     <string name="gamespace_running">Ruang Game Sedang Berjalan</string>
+
+     <!-- tiles -->
+     <string name="wifi_title">Wi-Fi</string>
+     <string name="bluetooth_title">Bluetooth</string>
+     <string name="mobile_data_title">Data Seluller</string>
+     <string name="airplane_mode_title">Mode Pesawat</string>
+     <string name="dnd_title">Mode jangan Ganggu</string>
+
+     <!-- Music Control -->
+     <string name="media_no_session">Tidak Ada Media Di Putar</string>
+
+    <!-- Downscale Resolution -->
+    <string name="remove_category">Hapus Daftar Aplikasi</string>
+    <string name="per_app_downscale_title">Turunkan Resolusi</string>
+    <string name="per_app_downscale_dialog_title">Resolusi rendering\nBerlaku dalam mode Performa atau Baterai setelah memulai ulang game</string>
+    <string name="per_app_downscale_off">mati (resolusi asli)</string>
+
+    <!-- Auto Hide Toolbar -->
+    <string name="gamespace_bar_auto_hide_title">Sembunyikan Toolbar secara otomatis</string>
+    <string name="gamespace_bar_auto_hide_summary">Buat bilah alat memudar hingga hampir tidak terlihat saat tidak digunakan.</string>
+    <string name="gamespace_bar_auto_hide_delay_title">Sembunyikan Setelah</string>
+    <string name="gamespace_bar_auto_hide_delay_value">Sembunyikan Setelah: %d s</string>
+    <string name="gamespace_bar_auto_hide_delay_summary">Toolbar memudar setelah sekian detik tidak ada aktivitas.</string>
+
+    <!-- Quick App Start -->
+    <string name="category_quick_start">Mulai Cepat</string>
+    <string name="quick_start_apps_title">Mulai Cepat Aplikasi</string>
+    <string name="quick_start_apps_summary">Pilih aplikasi yang ingin diluncurkan dengan cepat</string>
 </resources>
