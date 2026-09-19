@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- Vertical line size, adjusted for brightness/volume slider row -->
+    <size android:width="3dp" android:height="12dp" />
+    <corners android:radius="1.5dp" />
+    <!--  The color is brighter/more contrasting than the track so that the thumb remains clearly visible. -->
+    <solid android:color="@android:color/system_accent1_50" />
+</shape>
