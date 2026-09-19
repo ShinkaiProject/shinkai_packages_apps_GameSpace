@@ -106,7 +106,7 @@
                     android:layout_marginHorizontal="4dp"
                     android:paddingStart="0dp"
                     android:paddingEnd="0dp"
-                    android:thumb="@drawable/slider_thumb"
+                    android:thumb="@drawable/slider_thumb_media"
                     android:thumbOffset="0dp"
                     android:splitTrack="false"
                     android:background="@null" />
