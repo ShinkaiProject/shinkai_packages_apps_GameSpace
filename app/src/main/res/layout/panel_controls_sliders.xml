@@ -32,7 +32,6 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:progressDrawable="@drawable/slider_track"
             android:thumb="@drawable/slider_thumb"
             android:thumbOffset="0dp"
             android:splitTrack="false"
@@ -59,12 +58,11 @@
             android:clickable="true"
             android:focusable="true"
             app:tint="@android:color/system_accent1_900" />
-
+            
         <com.android.gamespace.widget.VolumeSliderView
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:progressDrawable="@drawable/slider_track"
             android:thumb="@drawable/slider_thumb"
             android:thumbOffset="0dp"
             android:splitTrack="false"
