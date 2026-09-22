@@ -17,6 +17,7 @@ class VolumeSliderView @JvmOverloads constructor(
 
     init {
         max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        progressDrawable = GapSliderTrackDrawable(context)
         setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) am.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)

@@ -20,6 +20,7 @@ class BrightnessSliderView @JvmOverloads constructor(
 
     init {
         max = 255
+        progressDrawable = GapSliderTrackDrawable(context)
         setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) Settings.System.putInt(cr, Settings.System.SCREEN_BRIGHTNESS, progress.coerceAtLeast(1))
