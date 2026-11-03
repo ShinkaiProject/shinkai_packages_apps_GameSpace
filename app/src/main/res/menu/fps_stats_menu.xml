@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selection mode only -->
+    <item
+        android:id="@+id/menu_delete_selected"
+        android:icon="@drawable/ic_delete"
+        android:showAsAction="ifRoom"
+        android:title="@string/fps_stats_delete"
+        android:visible="false" />
+
+    <item
+        android:id="@+id/menu_select_all"
+        android:showAsAction="never"
+        android:title="@string/fps_stats_select_all"
+        android:visible="false" />
+
+    <!-- Normal mode only -->
+    <item
+        android:id="@+id/menu_select"
+        android:showAsAction="never"
+        android:title="@string/fps_stats_select" />
+
     <item
         android:id="@+id/menu_delete_all"
         android:showAsAction="never"

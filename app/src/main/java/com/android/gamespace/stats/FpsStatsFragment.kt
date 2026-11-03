@@ -10,8 +10,10 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -21,29 +23,63 @@ import com.android.gamespace.R
 import com.android.gamespace.data.FpsSessionStore
 import java.util.Locale
 
-/** The list of recorded FPS sessions, newest first. */
+/**
+ * The list of recorded FPS sessions, newest first.
+ *
+ * Long-pressing a session (or choosing "Select" in the menu) switches to selection mode, where
+ * any number of sessions can be ticked and deleted together.
+ */
 class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
 
     private val store by lazy { FpsSessionStore(requireContext().applicationContext) }
-    private val adapter = SessionAdapter { openSession(it) }
+    private val adapter = SessionAdapter(
+        onClick = { onItemClick(it) },
+        onLongClick = { onItemLongClick(it) },
+    )
     private var emptyView: View? = null
-    private var hasSessions = false
+    private var sessions: List<FpsSessionStore.Info> = emptyList()
+
+    private var selecting = false
+    private val selected = linkedSetOf<String>()
+
+    /** While selecting, Back leaves selection mode instead of closing the screen. */
+    private val backCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() = exitSelection()
+    }
 
     private val menuProvider = object : MenuProvider {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
             menuInflater.inflate(R.menu.fps_stats_menu, menu)
+            menu.findItem(R.id.menu_delete_selected)?.apply {
+                isVisible = selecting
+                isEnabled = selected.isNotEmpty()
+            }
+            menu.findItem(R.id.menu_select_all)?.isVisible = selecting
+            menu.findItem(R.id.menu_select)?.isVisible = !selecting
+            menu.findItem(R.id.menu_delete_all)?.isVisible = !selecting
         }
 
-        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-            if (menuItem.itemId != R.id.menu_delete_all) return false
-            confirmDeleteAll()
-            return true
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean = when (menuItem.itemId) {
+            R.id.menu_select -> { enterSelection(null); true }
+            R.id.menu_select_all -> { selectAll(); true }
+            R.id.menu_delete_selected -> { confirmDeleteSelected(); true }
+            R.id.menu_delete_all -> { confirmDeleteAll(); true }
+            else -> false
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        activity?.title = getString(R.string.fps_statistics_title)
+        savedInstanceState?.let {
+            selecting = it.getBoolean(KEY_SELECTING)
+            selected.addAll(it.getStringArrayList(KEY_SELECTED).orEmpty())
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_SELECTING, selecting)
+        outState.putStringArrayList(KEY_SELECTED, ArrayList(selected))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -53,7 +89,10 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
             it.layoutManager = LinearLayoutManager(requireContext())
             it.adapter = adapter
         }
-        requireActivity().addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        val activity = requireActivity()
+        activity.addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        activity.onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
+        applySelectionState()
     }
 
     override fun onResume() {
@@ -68,15 +107,28 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
 
     private fun reload() {
         val activity = requireActivity()
+        val store = store
         Thread {
-            val sessions = store.list()
+            val loaded = store.list()
             activity.runOnUiThread {
                 if (!isAdded || view == null) return@runOnUiThread
-                hasSessions = sessions.isNotEmpty()
-                adapter.submit(sessions)
-                emptyView?.visibility = if (hasSessions) View.GONE else View.VISIBLE
+                sessions = loaded
+                // Forget selected sessions that no longer exist; nothing to select in an empty list.
+                selected.retainAll(loaded.map { it.id }.toSet())
+                if (loaded.isEmpty()) selecting = false
+                adapter.submit(loaded)
+                emptyView?.visibility = if (loaded.isEmpty()) View.VISIBLE else View.GONE
+                applySelectionState()
             }
         }.start()
+    }
+
+    private fun onItemClick(info: FpsSessionStore.Info) {
+        if (selecting) toggle(info.id) else openSession(info)
+    }
+
+    private fun onItemLongClick(info: FpsSessionStore.Info) {
+        if (selecting) toggle(info.id) else enterSelection(info.id)
     }
 
     private fun openSession(info: FpsSessionStore.Info) {
@@ -86,8 +138,68 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
         )
     }
 
+    private fun enterSelection(firstId: String?) {
+        if (sessions.isEmpty()) return
+        selecting = true
+        firstId?.let { selected.add(it) }
+        applySelectionState()
+    }
+
+    private fun exitSelection() {
+        selecting = false
+        selected.clear()
+        applySelectionState()
+    }
+
+    private fun toggle(id: String) {
+        if (!selected.add(id)) selected.remove(id)
+        applySelectionState()
+    }
+
+    private fun selectAll() {
+        selected.addAll(sessions.map { it.id })
+        applySelectionState()
+    }
+
+    /** Brings the adapter, title, menu and Back handling in line with the selection state. */
+    private fun applySelectionState() {
+        backCallback.isEnabled = selecting
+        adapter.setSelection(selecting, selected)
+        activity?.title = if (selecting) {
+            getString(R.string.fps_stats_selected_count, selected.size)
+        } else {
+            getString(R.string.fps_statistics_title)
+        }
+        activity?.invalidateOptionsMenu()
+    }
+
+    private fun confirmDeleteSelected() {
+        val ids = selected.toList()
+        if (ids.isEmpty()) return
+        AlertDialog.Builder(requireContext())
+            .setMessage(
+                resources.getQuantityString(R.plurals.fps_stats_delete_selected_message, ids.size, ids.size)
+            )
+            .setPositiveButton(R.string.fps_stats_delete) { _, _ -> deleteSessions(ids) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteSessions(ids: List<String>) {
+        val activity = requireActivity()
+        val store = store
+        Thread {
+            ids.forEach { store.delete(it) }
+            activity.runOnUiThread {
+                if (!isAdded || view == null) return@runOnUiThread
+                exitSelection()
+                reload()
+            }
+        }.start()
+    }
+
     private fun confirmDeleteAll() {
-        if (!hasSessions) return
+        if (sessions.isEmpty()) return
         AlertDialog.Builder(requireContext())
             .setMessage(R.string.fps_stats_delete_all_message)
             .setPositiveButton(R.string.fps_stats_delete_all) { _, _ ->
@@ -99,12 +211,16 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
     }
 
     private class SessionAdapter(
-        private val onClick: (FpsSessionStore.Info) -> Unit
+        private val onClick: (FpsSessionStore.Info) -> Unit,
+        private val onLongClick: (FpsSessionStore.Info) -> Unit,
     ) : RecyclerView.Adapter<SessionAdapter.Holder>() {
 
         private var items: List<FpsSessionStore.Info> = emptyList()
+        private var selecting = false
+        private var selectedIds: Set<String> = emptySet()
 
         class Holder(view: View) : RecyclerView.ViewHolder(view) {
+            val check: CheckBox = view.findViewById(R.id.session_check)
             val icon: ImageView = view.findViewById(android.R.id.icon)
             val title: TextView = view.findViewById(android.R.id.title)
             val summary: TextView = view.findViewById(android.R.id.summary)
@@ -114,6 +230,13 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
         @Suppress("NotifyDataSetChanged") // the list is replaced as a whole
         fun submit(sessions: List<FpsSessionStore.Info>) {
             items = sessions
+            notifyDataSetChanged()
+        }
+
+        @Suppress("NotifyDataSetChanged") // every row shows or hides its checkbox
+        fun setSelection(selecting: Boolean, selectedIds: Set<String>) {
+            this.selecting = selecting
+            this.selectedIds = selectedIds.toSet()
             notifyDataSetChanged()
         }
 
@@ -141,7 +264,19 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
             val duration = DateUtils.formatElapsedTime(info.durationMs / 1000)
             holder.summary.text = context.getString(R.string.fps_stats_item_summary, date, duration)
             holder.average.text = String.format(Locale.getDefault(), "%.1f", info.avgFps)
+
+            val isSelected = selecting && info.id in selectedIds
+            holder.check.visibility = if (selecting) View.VISIBLE else View.GONE
+            holder.check.isChecked = isSelected
+            holder.itemView.isActivated = isSelected
+
             holder.itemView.setOnClickListener { onClick(info) }
+            holder.itemView.setOnLongClickListener { onLongClick(info); true }
         }
+    }
+
+    companion object {
+        private const val KEY_SELECTING = "selecting"
+        private const val KEY_SELECTED = "selected_ids"
     }
 }

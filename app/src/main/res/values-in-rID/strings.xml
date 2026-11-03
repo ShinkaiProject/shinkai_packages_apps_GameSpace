@@ -84,6 +84,12 @@
     <string name="fps_stats_avg_fps_label">RATA-RATA FPS</string>
     <string name="fps_stats_delete">Hapus</string>
     <string name="fps_stats_delete_message">Hapus sesi FPS ini?</string>
+    <string name="fps_stats_select">Pilih</string>
+    <string name="fps_stats_select_all">Pilih semua</string>
+    <string name="fps_stats_selected_count"><xliff:g id="count" example="3">%1$d</xliff:g> dipilih</string>
+    <plurals name="fps_stats_delete_selected_message">
+        <item quantity="other">Hapus <xliff:g id="count" example="3">%1$d</xliff:g> sesi FPS yang dipilih?</item>
+    </plurals>
     <string name="fps_stats_delete_all">Hapus semua</string>
     <string name="fps_stats_delete_all_message">Hapus semua sesi FPS yang terekam?</string>
     <string name="fps_stats_share">Bagikan</string>
