@@ -3,6 +3,7 @@ package com.android.gamespace.utils
 import android.app.ActivityTaskManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +14,9 @@ import android.view.WindowManager
 import android.widget.Toast
 import android.window.TaskFpsCallback
 import com.android.gamespace.R
+import com.android.gamespace.data.FpsSample
+import com.android.gamespace.data.FpsSessionStore
+import com.android.gamespace.data.FpsStats
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -22,13 +26,14 @@ import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import javax.inject.Inject
-import kotlin.math.ceil
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * Records the FPS reported by the window manager for the game's task and, once stopped, saves the
- * session as a CSV file to Download/GameSpace.
+ * Records the FPS reported by the window manager for the game's task together with battery, power
+ * and CPU readings taken at the same moments.
+ *
+ * When stopped, the session is stored for the FPS statistics screen in Settings and a CSV copy is
+ * exported to Download/GameSpace.
  *
  * Recording is independent from the on-bar FPS counter, so it keeps running while the bar is
  * collapsed or the panel is closed. It is stopped automatically when the game session ends.
@@ -43,22 +48,31 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         fun onSample(elapsedMs: Long, fps: Float) {}
     }
 
-    private class Sample(val wallTimeMs: Long, val elapsedMs: Long, val fps: Float)
-
     private class Session(
         val packageName: String,
+        val label: String,
+        val resolution: String,
         val startWallMs: Long,
         val startElapsedMs: Long,
     ) {
-        val samples = ArrayList<Sample>()
+        val samples = ArrayList<FpsSample>()
+        var callback: TaskFpsCallback? = null
     }
 
     private val lock = Any()
     private val listeners = CopyOnWriteArrayList<Listener>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val wm by lazy { context.getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+    private val store by lazy { FpsSessionStore(context) }
+    private val sampler by lazy { SystemStatsSampler(context) }
+
+    // FPS reports are handled on their own thread so reading sysfs never blocks a binder thread.
+    // Being single threaded it also keeps the sampler's state consistent.
+    private val sampleExecutor by lazy {
+        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder-sample").apply { isDaemon = true } }
+    }
     private val saver by lazy {
-        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder").apply { isDaemon = true } }
+        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder-save").apply { isDaemon = true } }
     }
 
     @Volatile
@@ -70,10 +84,6 @@ class FpsRecorder @Inject constructor(private val context: Context) {
     /** Time since recording started, or 0 when idle. */
     val elapsedMs: Long
         get() = session?.let { SystemClock.elapsedRealtime() - it.startElapsedMs } ?: 0L
-
-    private val fpsCallback = object : TaskFpsCallback() {
-        override fun onFpsReported(fps: Float) = onSample(fps)
-    }
 
     fun addListener(listener: Listener) {
         listeners.addIfAbsent(listener)
@@ -96,16 +106,26 @@ class FpsRecorder @Inject constructor(private val context: Context) {
             return false
         }
 
+        val packageName = task.topActivity?.packageName ?: "game"
         val newSession = Session(
-            packageName = task.topActivity?.packageName ?: "game",
+            packageName = packageName,
+            label = appLabel(packageName),
+            resolution = displayResolution(),
             startWallMs = System.currentTimeMillis(),
             startElapsedMs = SystemClock.elapsedRealtime(),
         )
+        val callback = object : TaskFpsCallback() {
+            override fun onFpsReported(fps: Float) = onSample(newSession, fps)
+        }
+        newSession.callback = callback
+
         // Publish the session first so the very first report is not dropped.
         synchronized(lock) { session = newSession }
 
         try {
-            wm.registerTaskFpsCallback(task.taskId, Runnable::run, fpsCallback)
+            // Queued before the callback is registered, so it always runs before the first report.
+            sampleExecutor.execute { runCatching { sampler.reset() } }
+            wm.registerTaskFpsCallback(task.taskId, sampleExecutor, callback)
         } catch (e: Exception) {
             Log.e(TAG, "Unable to register task FPS callback", e)
             synchronized(lock) { session = null }
@@ -118,15 +138,15 @@ class FpsRecorder @Inject constructor(private val context: Context) {
     }
 
     /**
-     * Stops recording and saves the log.
+     * Stops recording and saves the session.
      *
-     * @param blocking write the file on the calling thread. Use it when the process may go away
+     * @param blocking write the files on the calling thread. Use it when the process may go away
      * right after the call (e.g. the game session is being torn down).
      */
     fun stop(blocking: Boolean = false) {
         val finished = synchronized(lock) { session.also { session = null } } ?: return
 
-        runCatching { wm.unregisterTaskFpsCallback(fpsCallback) }
+        finished.callback?.let { runCatching { wm.unregisterTaskFpsCallback(it) } }
         dispatchState(false)
 
         if (finished.samples.isEmpty()) {
@@ -138,14 +158,26 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         if (blocking) work.run() else saver.execute(work)
     }
 
-    private fun onSample(fps: Float) {
+    private fun onSample(s: Session, fps: Float) {
+        if (session !== s) return
+        val reading = runCatching { sampler.read() }.getOrNull()
+
         val elapsed: Long
         val limitReached: Boolean
         synchronized(lock) {
-            val current = session ?: return
-            elapsed = SystemClock.elapsedRealtime() - current.startElapsedMs
-            current.samples.add(Sample(System.currentTimeMillis(), elapsed, fps))
-            limitReached = current.samples.size >= MAX_SAMPLES
+            if (session !== s) return
+            elapsed = SystemClock.elapsedRealtime() - s.startElapsedMs
+            s.samples.add(
+                FpsSample(
+                    elapsedMs = elapsed,
+                    fps = fps,
+                    batteryTempC = reading?.batteryTempC ?: Float.NaN,
+                    powerW = reading?.powerW ?: Float.NaN,
+                    cpuUsagePct = reading?.cpuUsagePct ?: Float.NaN,
+                    cpuTempC = reading?.cpuTempC ?: Float.NaN,
+                )
+            )
+            limitReached = s.samples.size >= MAX_SAMPLES
         }
         mainHandler.post { listeners.forEach { it.onSample(elapsed, fps) } }
         if (limitReached) mainHandler.post { stop() }
@@ -155,16 +187,39 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         mainHandler.post { listeners.forEach { it.onStateChanged(recording) } }
     }
 
+    private fun appLabel(packageName: String): String = runCatching {
+        val pm = context.packageManager
+        pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(0))
+            .loadLabel(pm).toString()
+    }.getOrDefault(packageName)
+
+    private fun displayResolution(): String = runCatching {
+        val bounds = wm.maximumWindowMetrics.bounds
+        "${bounds.width()}x${bounds.height()}"
+    }.getOrDefault("")
+
     private fun save(finished: Session) {
-        val values = finished.samples.map { it.fps }.sorted()
-        val avg = values.average()
-        val lowCount = max(1, ceil(values.size * 0.01).toInt())
-        val low = values.take(lowCount).average()
+        val stats = FpsStats.of(finished.samples) ?: return
+
+        val stored = runCatching {
+            store.save(
+                FpsSessionStore.Meta(
+                    finished.packageName, finished.label, finished.startWallMs, finished.resolution
+                ),
+                finished.samples
+            )
+        }.onFailure { Log.e(TAG, "Unable to store FPS session", it) }.getOrNull()
 
         val name = "fps_${finished.packageName}_" +
             "${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(finished.startWallMs))}.csv"
-        val data = buildCsv(finished).toByteArray(Charsets.UTF_8)
-        val location = saveToDownloads(name, data) ?: saveToAppStorage(name, data)
+        val data = FpsSessionStore.encodeCsv(finished.samples, finished.startWallMs)
+            .toByteArray(Charsets.UTF_8)
+        val exported = saveToDownloads(name, data)
+            // Only fall back to app storage when the session is not kept by the store either.
+            ?: if (stored == null) saveToAppStorage(name, data) else null
+
+        val location = exported
+            ?: if (stored != null) context.getString(R.string.fps_statistics_title) else null
 
         if (location == null) {
             toast(R.string.fps_record_save_failed)
@@ -172,21 +227,10 @@ class FpsRecorder @Inject constructor(private val context: Context) {
             toast(
                 context.getString(
                     R.string.fps_record_saved, location,
-                    avg.roundToInt(), values.first().roundToInt(),
-                    values.last().roundToInt(), low.roundToInt()
+                    stats.fps.avg.roundToInt(), stats.fps.min.roundToInt(),
+                    stats.fps.max.roundToInt(), stats.low1.roundToInt()
                 )
             )
-        }
-    }
-
-    private fun buildCsv(finished: Session): String {
-        val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
-        return buildString {
-            append("timestamp,elapsed_s,fps\n")
-            for (s in finished.samples) {
-                append(time.format(Date(s.wallTimeMs))).append(',')
-                append(String.format(Locale.US, "%.1f,%.1f\n", s.elapsedMs / 1000f, s.fps))
-            }
         }
     }
 

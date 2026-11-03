@@ -73,6 +73,29 @@
             android:exported="false"
             android:label="@string/app_selector_label" />
 
+        <activity
+            android:name=".stats.FpsStatsActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/fps_statistics_title" />
+
+        <activity
+            android:name=".stats.FpsSessionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/fps_statistics_title" />
+
+        <!-- Hands the CSV of a recorded FPS session to the share sheet -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.android.gamespace.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <service
             android:name=".gamebar.SessionService"
             android:exported="false" />

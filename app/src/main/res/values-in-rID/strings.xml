@@ -74,6 +74,72 @@
     <string name="fps_record_failed">Gagal memulai rekam FPS</string>
     <string name="fps_record_empty">Tidak ada data FPS yang terekam</string>
     <string name="fps_record_save_failed">Gagal menyimpan log FPS</string>
+
+    <!-- Statistik FPS -->
+    <string name="fps_statistics_category">Performa</string>
+    <string name="fps_statistics_title">Statistik FPS</string>
+    <string name="fps_statistics_summary">Lihat riwayat rekaman FPS</string>
+    <string name="fps_stats_empty">Belum ada rekaman FPS.\nGunakan tile Rekam FPS di panel game.</string>
+    <string name="fps_stats_item_summary"><xliff:g id="date" example="3 Nov, 11.17">%1$s</xliff:g> · <xliff:g id="duration" example="01:23">%2$s</xliff:g></string>
+    <string name="fps_stats_avg_fps_label">RATA-RATA FPS</string>
+    <string name="fps_stats_delete">Hapus</string>
+    <string name="fps_stats_delete_message">Hapus sesi FPS ini?</string>
+    <string name="fps_stats_delete_all">Hapus semua</string>
+    <string name="fps_stats_delete_all_message">Hapus semua sesi FPS yang terekam?</string>
+    <string name="fps_stats_share">Bagikan</string>
+    <string name="fps_stats_save">Simpan</string>
+    <string name="fps_stats_saved">Deskripsi disimpan</string>
+    <string name="fps_stats_not_found">Sesi tidak ditemukan</string>
+    <string name="fps_stats_description_hint">Deskripsi</string>
+    <string name="fps_stats_resolution">Res: <xliff:g id="resolution" example="1080x2400">%1$s</xliff:g></string>
+    <string name="fps_stats_session_summary">Ringkasan Sesi</string>
+    <string name="fps_stats_tab_charts">Grafik</string>
+    <string name="fps_stats_tab_details">Statistik Detail</string>
+    <string name="fps_stats_label_max">MAKS</string>
+    <string name="fps_stats_label_min">MIN</string>
+    <string name="fps_stats_label_average">RATA-RATA</string>
+    <string name="fps_stats_label_low1" formatted="false">1% LOW</string>
+    <string name="fps_stats_label_low01" formatted="false">0.1% LOW</string>
+    <string name="fps_stats_label_low5" formatted="false">5% LOW</string>
+    <string name="fps_stats_unit_fps">FPS</string>
+    <string name="fps_stats_unit_temp">Suhu</string>
+    <string name="fps_stats_unit_power">Daya (Watt)</string>
+    <string name="fps_stats_chart_fps">FPS</string>
+    <string name="fps_stats_chart_battery_temp">Suhu Baterai (°C)</string>
+    <string name="fps_stats_chart_frame_time">Frame Time (ms)</string>
+    <string name="fps_stats_chart_cpu_usage" formatted="false">Penggunaan CPU (%)</string>
+    <string name="fps_stats_chart_cpu_temp">Suhu CPU (°C)</string>
+    <string name="fps_stats_chart_power">Daya (W)</string>
+    <string name="fps_stats_legend_fps">FPS</string>
+    <string name="fps_stats_legend_battery_temp">Suhu Baterai</string>
+    <string name="fps_stats_legend_frame_time">Frame Time</string>
+    <string name="fps_stats_legend_cpu_usage">Total</string>
+    <string name="fps_stats_legend_cpu_temp">Suhu</string>
+    <string name="fps_stats_legend_power">Daya</string>
+    <string name="fps_stats_chart_max">MAKS: <xliff:g id="value" example="60,0">%1$s</xliff:g></string>
+    <string name="fps_stats_chart_min">MIN: <xliff:g id="value" example="23,0">%1$s</xliff:g></string>
+    <string name="fps_stats_chart_avg">RATA-RATA: <xliff:g id="value" example="52,6">%1$s</xliff:g></string>
+    <string name="fps_stats_section_session">Sesi</string>
+    <string name="fps_stats_section_fps">FPS</string>
+    <string name="fps_stats_section_frame_time">Frame time</string>
+    <string name="fps_stats_section_battery_temp">Suhu baterai</string>
+    <string name="fps_stats_section_cpu_temp">Suhu CPU</string>
+    <string name="fps_stats_section_cpu_usage">Penggunaan CPU</string>
+    <string name="fps_stats_section_power">Daya</string>
+    <string name="fps_stats_row_duration">Durasi</string>
+    <string name="fps_stats_row_samples">Jumlah sampel</string>
+    <string name="fps_stats_row_resolution">Resolusi</string>
+    <string name="fps_stats_row_package">Paket</string>
+    <string name="fps_stats_row_average">Rata-rata</string>
+    <string name="fps_stats_row_minimum">Minimum</string>
+    <string name="fps_stats_row_maximum">Maksimum</string>
+    <string name="fps_stats_row_low1" formatted="false">1% low</string>
+    <string name="fps_stats_row_low01" formatted="false">0.1% low</string>
+    <string name="fps_stats_row_low5" formatted="false">5% low</string>
+    <string name="fps_stats_row_std_dev">Standar deviasi</string>
+    <string name="fps_stats_row_p95">Persentil ke-95</string>
+    <string name="fps_stats_row_p99">Persentil ke-99</string>
+    <string name="fps_stats_share_text"><xliff:g id="game" example="Game">%1$s</xliff:g>\nRata-rata <xliff:g id="avg" example="52,6">%2$s</xliff:g> · Min <xliff:g id="min" example="23,0">%3$s</xliff:g> · Maks <xliff:g id="max" example="60,0">%4$s</xliff:g> FPS · 1%% low <xliff:g id="low" example="23,0">%5$s</xliff:g></string>
     <string name="notification_hide">Sembunyikan</string>
     <string name="notification_headsup">Notifikasi mengambang</string>
     <string name="notification_reticker">reTicker</string>

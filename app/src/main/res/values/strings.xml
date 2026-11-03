@@ -51,6 +51,72 @@
     <string name="fps_record_failed">Couldn\'t start FPS recording</string>
     <string name="fps_record_empty">No FPS data was recorded</string>
     <string name="fps_record_save_failed">Couldn\'t save the FPS log</string>
+
+    <!-- FPS statistics -->
+    <string name="fps_statistics_category">Performance</string>
+    <string name="fps_statistics_title">FPS statistics</string>
+    <string name="fps_statistics_summary">View recorded FPS sessions</string>
+    <string name="fps_stats_empty">No FPS recordings yet.\nUse the Record FPS tile in the game panel.</string>
+    <string name="fps_stats_item_summary"><xliff:g id="date" example="Nov 3, 11:17 AM">%1$s</xliff:g> · <xliff:g id="duration" example="01:23">%2$s</xliff:g></string>
+    <string name="fps_stats_avg_fps_label">AVG FPS</string>
+    <string name="fps_stats_delete">Delete</string>
+    <string name="fps_stats_delete_message">Delete this FPS session?</string>
+    <string name="fps_stats_delete_all">Delete all</string>
+    <string name="fps_stats_delete_all_message">Delete all recorded FPS sessions?</string>
+    <string name="fps_stats_share">Share</string>
+    <string name="fps_stats_save">Save</string>
+    <string name="fps_stats_saved">Description saved</string>
+    <string name="fps_stats_not_found">Session not found</string>
+    <string name="fps_stats_description_hint">Description</string>
+    <string name="fps_stats_resolution">Res: <xliff:g id="resolution" example="1080x2400">%1$s</xliff:g></string>
+    <string name="fps_stats_session_summary">Session Summary</string>
+    <string name="fps_stats_tab_charts">Charts</string>
+    <string name="fps_stats_tab_details">Detailed Stats</string>
+    <string name="fps_stats_label_max">MAX</string>
+    <string name="fps_stats_label_min">MIN</string>
+    <string name="fps_stats_label_average">AVERAGE</string>
+    <string name="fps_stats_label_low1" formatted="false">1% LOW</string>
+    <string name="fps_stats_label_low01" formatted="false">0.1% LOW</string>
+    <string name="fps_stats_label_low5" formatted="false">5% LOW</string>
+    <string name="fps_stats_unit_fps">FPS</string>
+    <string name="fps_stats_unit_temp">Temperature</string>
+    <string name="fps_stats_unit_power">Power (Watt)</string>
+    <string name="fps_stats_chart_fps">FPS</string>
+    <string name="fps_stats_chart_battery_temp">Battery Temp (°C)</string>
+    <string name="fps_stats_chart_frame_time">Frame Time (ms)</string>
+    <string name="fps_stats_chart_cpu_usage" formatted="false">CPU Usage (%)</string>
+    <string name="fps_stats_chart_cpu_temp">CPU Temp (°C)</string>
+    <string name="fps_stats_chart_power">Power (W)</string>
+    <string name="fps_stats_legend_fps">FPS</string>
+    <string name="fps_stats_legend_battery_temp">Battery Temp</string>
+    <string name="fps_stats_legend_frame_time">Frame Time</string>
+    <string name="fps_stats_legend_cpu_usage">Total</string>
+    <string name="fps_stats_legend_cpu_temp">Temp</string>
+    <string name="fps_stats_legend_power">Power</string>
+    <string name="fps_stats_chart_max">MAX: <xliff:g id="value" example="60.0">%1$s</xliff:g></string>
+    <string name="fps_stats_chart_min">MIN: <xliff:g id="value" example="23.0">%1$s</xliff:g></string>
+    <string name="fps_stats_chart_avg">AVG: <xliff:g id="value" example="52.6">%1$s</xliff:g></string>
+    <string name="fps_stats_section_session">Session</string>
+    <string name="fps_stats_section_fps">FPS</string>
+    <string name="fps_stats_section_frame_time">Frame time</string>
+    <string name="fps_stats_section_battery_temp">Battery temperature</string>
+    <string name="fps_stats_section_cpu_temp">CPU temperature</string>
+    <string name="fps_stats_section_cpu_usage">CPU usage</string>
+    <string name="fps_stats_section_power">Power</string>
+    <string name="fps_stats_row_duration">Duration</string>
+    <string name="fps_stats_row_samples">Samples</string>
+    <string name="fps_stats_row_resolution">Resolution</string>
+    <string name="fps_stats_row_package">Package</string>
+    <string name="fps_stats_row_average">Average</string>
+    <string name="fps_stats_row_minimum">Minimum</string>
+    <string name="fps_stats_row_maximum">Maximum</string>
+    <string name="fps_stats_row_low1" formatted="false">1% low</string>
+    <string name="fps_stats_row_low01" formatted="false">0.1% low</string>
+    <string name="fps_stats_row_low5" formatted="false">5% low</string>
+    <string name="fps_stats_row_std_dev">Standard deviation</string>
+    <string name="fps_stats_row_p95">95th percentile</string>
+    <string name="fps_stats_row_p99">99th percentile</string>
+    <string name="fps_stats_share_text"><xliff:g id="game" example="Game">%1$s</xliff:g>\nAvg <xliff:g id="avg" example="52.6">%2$s</xliff:g> · Min <xliff:g id="min" example="23.0">%3$s</xliff:g> · Max <xliff:g id="max" example="60.0">%4$s</xliff:g> FPS · 1%% low <xliff:g id="low" example="23.0">%5$s</xliff:g></string>
     <string name="stay_awake_title">Stay Awake</string>
     <string name="stay_awake_summary">Keep screen awake while in the game</string>
     <string name="lock_gesture_title">Lock gesture</string>

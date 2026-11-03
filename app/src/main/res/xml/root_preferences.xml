@@ -114,6 +114,21 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="fps_statistics_category"
+        android:title="@string/fps_statistics_category">
+
+        <Preference
+            android:key="fps_statistics"
+            android:summary="@string/fps_statistics_summary"
+            android:title="@string/fps_statistics_title">
+            <intent
+                android:targetClass="com.android.gamespace.stats.FpsStatsActivity"
+                android:targetPackage="com.android.gamespace" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="quick_start_category"
         android:title="@string/category_quick_start">
 
