@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- On-surface text for popup menu items; disabled items fade to 38% as in Material 3 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:alpha="0.38"
+        android:color="@color/popupMenuOnSurface"
+        android:state_enabled="false" />
+    <item android:color="@color/popupMenuOnSurface" />
+</selector>

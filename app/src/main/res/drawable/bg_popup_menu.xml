@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 menu container: rounded surface container that follows the wallpaper colours -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/popupMenuBackground" />
+    <corners android:radius="@dimen/popup_menu_corner_radius" />
+    <padding
+        android:bottom="@dimen/popup_menu_padding_vertical"
+        android:left="0dp"
+        android:right="0dp"
+        android:top="@dimen/popup_menu_padding_vertical" />
+</shape>
