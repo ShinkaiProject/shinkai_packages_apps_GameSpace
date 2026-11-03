@@ -67,6 +67,13 @@
     <!-- Tiles -->
     <string name="game_mode_title">Mode</string>
     <string name="fps_Info_title">Info FPS</string>
+    <string name="fps_record_title">Rekam FPS</string>
+    <string name="fps_record_summary_idle">Ketuk untuk mulai</string>
+    <string name="fps_record_summary_recording">Merekam <xliff:g id="time" example="01:23">%1$s</xliff:g></string>
+    <string name="fps_record_saved">Log FPS disimpan di <xliff:g id="path" example="Download/GameSpace">%1$s</xliff:g>\nRata-rata <xliff:g id="avg" example="59">%2$d</xliff:g> · Min <xliff:g id="min" example="41">%3$d</xliff:g> · Maks <xliff:g id="max" example="60">%4$d</xliff:g> · 1%% low <xliff:g id="low" example="45">%5$d</xliff:g></string>
+    <string name="fps_record_failed">Gagal memulai rekam FPS</string>
+    <string name="fps_record_empty">Tidak ada data FPS yang terekam</string>
+    <string name="fps_record_save_failed">Gagal menyimpan log FPS</string>
     <string name="notification_hide">Sembunyikan</string>
     <string name="notification_headsup">Notifikasi mengambang</string>
     <string name="notification_reticker">reTicker</string>

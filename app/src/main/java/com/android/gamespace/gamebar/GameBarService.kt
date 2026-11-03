@@ -55,6 +55,7 @@ class GameBarService : Hilt_GameBarService() {
     @Inject lateinit var appSettings: AppSettings
     @Inject lateinit var screenUtils: ScreenUtils
     @Inject lateinit var danmakuService: DanmakuService
+    @Inject lateinit var fpsRecorder: FpsRecorder
 
     private val wm by lazy { getSystemService(WINDOW_SERVICE) as WindowManager }
     private val handler by lazy { Handler(Looper.getMainLooper()) }
@@ -102,6 +103,12 @@ class GameBarService : Hilt_GameBarService() {
     private val firstPaint = Runnable { initActions() }
     private var shouldClose = false
     private var isGameStarting = false
+
+    private val recordingListener = object : FpsRecorder.Listener {
+        override fun onStateChanged(recording: Boolean) {
+            menuSwitcher.isRecording = recording
+        }
+    }
 
     private var barExpanded = false
         set(value) {
@@ -158,6 +165,8 @@ class GameBarService : Hilt_GameBarService() {
         applyOpacity()
         updateScreenMetrics()
         danmakuService.init()
+        menuSwitcher.isRecording = fpsRecorder.isRecording
+        fpsRecorder.addListener(recordingListener)
     }
 
     private fun updateScreenMetrics() {
@@ -211,6 +220,7 @@ class GameBarService : Hilt_GameBarService() {
 
     override fun onDestroy() {
         onGameLeave()
+        fpsRecorder.removeListener(recordingListener)
         danmakuService.destroy()
         super.onDestroy()
     }
@@ -252,6 +262,8 @@ class GameBarService : Hilt_GameBarService() {
     }
 
     fun onGameLeave() {
+        // The game is going away: finish and save any running FPS recording right now.
+        fpsRecorder.stop(blocking = true)
         shouldClose = true
         handler.removeCallbacksAndMessages(null)
 

@@ -25,6 +25,7 @@ import dagger.hilt.components.SingletonComponent
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.utils.FpsRecorder
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
 import javax.inject.Singleton
@@ -39,6 +40,10 @@ object MainModule {
     @Provides
     @Singleton
     fun provideScreenUtils(@ApplicationContext context: Context) = ScreenUtils(context)
+
+    @Provides
+    @Singleton
+    fun provideFpsRecorder(@ApplicationContext context: Context) = FpsRecorder(context)
 
     @Provides
     @Singleton

@@ -44,6 +44,13 @@
         <item>Battery</item>
     </string-array>
     <string name="fps_Info_title">FPS Info</string>
+    <string name="fps_record_title">Record FPS</string>
+    <string name="fps_record_summary_idle">Tap to start</string>
+    <string name="fps_record_summary_recording">Recording <xliff:g id="time" example="01:23">%1$s</xliff:g></string>
+    <string name="fps_record_saved">FPS log saved to <xliff:g id="path" example="Download/GameSpace">%1$s</xliff:g>\nAvg <xliff:g id="avg" example="59">%2$d</xliff:g> · Min <xliff:g id="min" example="41">%3$d</xliff:g> · Max <xliff:g id="max" example="60">%4$d</xliff:g> · 1%% low <xliff:g id="low" example="45">%5$d</xliff:g></string>
+    <string name="fps_record_failed">Couldn\'t start FPS recording</string>
+    <string name="fps_record_empty">No FPS data was recorded</string>
+    <string name="fps_record_save_failed">Couldn\'t save the FPS log</string>
     <string name="stay_awake_title">Stay Awake</string>
     <string name="stay_awake_summary">Keep screen awake while in the game</string>
     <string name="lock_gesture_title">Lock gesture</string>

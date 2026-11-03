@@ -5,6 +5,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.utils.FpsRecorder
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
 
@@ -16,4 +17,5 @@ interface ServiceViewEntryPoint {
     fun systemSettings(): SystemSettings
     fun screenUtils(): ScreenUtils
     fun gameModeUtils(): GameModeUtils
+    fun fpsRecorder(): FpsRecorder
 }

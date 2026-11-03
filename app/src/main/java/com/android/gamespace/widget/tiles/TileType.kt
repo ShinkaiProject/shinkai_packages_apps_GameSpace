@@ -8,6 +8,7 @@ enum class TileType(
 ) {
     GAME_MODE("game_mode", { GameModeTile(it) }),
     FPS_INFO("fps_info", { FPSInfoTile(it) }),
+    FPS_RECORD("fps_record", { FpsRecordTile(it) }),
     STAY_AWAKE("stay_awake", { StayAwakeTile(it) }),
     LOCK_GESTURE("lock_gesture", { LockGestureTile(it) }),
     WIFI("wifi", { WifiTile(it) }),

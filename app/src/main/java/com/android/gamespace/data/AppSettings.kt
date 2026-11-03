@@ -104,6 +104,6 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_BAR_AUTO_HIDE_DELAY = "gamespace_bar_auto_hide_delay_sec"
         const val DEFAULT_BAR_AUTO_HIDE_DELAY_SEC = 5
         const val KEY_SELECTED_TILES = "gamespace_selected_tiles"
-        const val DEFAULT_TILES = "game_mode,fps_info,stay_awake,lock_gesture,wifi,dnd,mobile_data,airplane_mode"
+        const val DEFAULT_TILES = "game_mode,fps_info,fps_record,stay_awake,lock_gesture,wifi,dnd,mobile_data,airplane_mode"
     }
 }

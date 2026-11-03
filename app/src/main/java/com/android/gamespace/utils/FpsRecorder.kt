@@ -1,0 +1,242 @@
+package com.android.gamespace.utils
+
+import android.app.ActivityTaskManager
+import android.content.ContentValues
+import android.content.Context
+import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.provider.MediaStore
+import android.util.Log
+import android.view.WindowManager
+import android.widget.Toast
+import android.window.TaskFpsCallback
+import com.android.gamespace.R
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.ArrayList
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import javax.inject.Inject
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+/**
+ * Records the FPS reported by the window manager for the game's task and, once stopped, saves the
+ * session as a CSV file to Download/GameSpace.
+ *
+ * Recording is independent from the on-bar FPS counter, so it keeps running while the bar is
+ * collapsed or the panel is closed. It is stopped automatically when the game session ends.
+ */
+class FpsRecorder @Inject constructor(private val context: Context) {
+
+    interface Listener {
+        /** Called on the main thread when recording starts or stops. */
+        fun onStateChanged(recording: Boolean) {}
+
+        /** Called on the main thread for every FPS sample received while recording. */
+        fun onSample(elapsedMs: Long, fps: Float) {}
+    }
+
+    private class Sample(val wallTimeMs: Long, val elapsedMs: Long, val fps: Float)
+
+    private class Session(
+        val packageName: String,
+        val startWallMs: Long,
+        val startElapsedMs: Long,
+    ) {
+        val samples = ArrayList<Sample>()
+    }
+
+    private val lock = Any()
+    private val listeners = CopyOnWriteArrayList<Listener>()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val wm by lazy { context.getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+    private val saver by lazy {
+        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder").apply { isDaemon = true } }
+    }
+
+    @Volatile
+    private var session: Session? = null
+
+    val isRecording: Boolean
+        get() = session != null
+
+    /** Time since recording started, or 0 when idle. */
+    val elapsedMs: Long
+        get() = session?.let { SystemClock.elapsedRealtime() - it.startElapsedMs } ?: 0L
+
+    private val fpsCallback = object : TaskFpsCallback() {
+        override fun onFpsReported(fps: Float) = onSample(fps)
+    }
+
+    fun addListener(listener: Listener) {
+        listeners.addIfAbsent(listener)
+    }
+
+    fun removeListener(listener: Listener) {
+        listeners.remove(listener)
+    }
+
+    /**
+     * Starts recording the FPS of the currently focused task (the game).
+     * @return true if a recording is running after the call.
+     */
+    fun start(): Boolean {
+        if (isRecording) return true
+
+        val task = runCatching { ActivityTaskManager.getService()?.focusedRootTaskInfo }
+            .getOrNull() ?: run {
+            toast(R.string.fps_record_failed)
+            return false
+        }
+
+        val newSession = Session(
+            packageName = task.topActivity?.packageName ?: "game",
+            startWallMs = System.currentTimeMillis(),
+            startElapsedMs = SystemClock.elapsedRealtime(),
+        )
+        // Publish the session first so the very first report is not dropped.
+        synchronized(lock) { session = newSession }
+
+        try {
+            wm.registerTaskFpsCallback(task.taskId, Runnable::run, fpsCallback)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to register task FPS callback", e)
+            synchronized(lock) { session = null }
+            toast(R.string.fps_record_failed)
+            return false
+        }
+
+        dispatchState(true)
+        return true
+    }
+
+    /**
+     * Stops recording and saves the log.
+     *
+     * @param blocking write the file on the calling thread. Use it when the process may go away
+     * right after the call (e.g. the game session is being torn down).
+     */
+    fun stop(blocking: Boolean = false) {
+        val finished = synchronized(lock) { session.also { session = null } } ?: return
+
+        runCatching { wm.unregisterTaskFpsCallback(fpsCallback) }
+        dispatchState(false)
+
+        if (finished.samples.isEmpty()) {
+            toast(R.string.fps_record_empty)
+            return
+        }
+
+        val work = Runnable { save(finished) }
+        if (blocking) work.run() else saver.execute(work)
+    }
+
+    private fun onSample(fps: Float) {
+        val elapsed: Long
+        val limitReached: Boolean
+        synchronized(lock) {
+            val current = session ?: return
+            elapsed = SystemClock.elapsedRealtime() - current.startElapsedMs
+            current.samples.add(Sample(System.currentTimeMillis(), elapsed, fps))
+            limitReached = current.samples.size >= MAX_SAMPLES
+        }
+        mainHandler.post { listeners.forEach { it.onSample(elapsed, fps) } }
+        if (limitReached) mainHandler.post { stop() }
+    }
+
+    private fun dispatchState(recording: Boolean) {
+        mainHandler.post { listeners.forEach { it.onStateChanged(recording) } }
+    }
+
+    private fun save(finished: Session) {
+        val values = finished.samples.map { it.fps }.sorted()
+        val avg = values.average()
+        val lowCount = max(1, ceil(values.size * 0.01).toInt())
+        val low = values.take(lowCount).average()
+
+        val name = "fps_${finished.packageName}_" +
+            "${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(finished.startWallMs))}.csv"
+        val data = buildCsv(finished).toByteArray(Charsets.UTF_8)
+        val location = saveToDownloads(name, data) ?: saveToAppStorage(name, data)
+
+        if (location == null) {
+            toast(R.string.fps_record_save_failed)
+        } else {
+            toast(
+                context.getString(
+                    R.string.fps_record_saved, location,
+                    avg.roundToInt(), values.first().roundToInt(),
+                    values.last().roundToInt(), low.roundToInt()
+                )
+            )
+        }
+    }
+
+    private fun buildCsv(finished: Session): String {
+        val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+        return buildString {
+            append("timestamp,elapsed_s,fps\n")
+            for (s in finished.samples) {
+                append(time.format(Date(s.wallTimeMs))).append(',')
+                append(String.format(Locale.US, "%.1f,%.1f\n", s.elapsedMs / 1000f, s.fps))
+            }
+        }
+    }
+
+    /** @return the folder the file was written to, or null on failure. */
+    private fun saveToDownloads(name: String, data: ByteArray): String? {
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_DIR)
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val uri = runCatching { resolver.insert(collection, values) }.getOrNull() ?: return null
+
+        return try {
+            val stream = resolver.openOutputStream(uri) ?: throw IOException("No output stream")
+            stream.use { it.write(data) }
+            values.clear()
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            RELATIVE_DIR
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to write FPS log to $RELATIVE_DIR", e)
+            runCatching { resolver.delete(uri, null, null) }
+            null
+        }
+    }
+
+    /** Fallback when MediaStore is unavailable. */
+    private fun saveToAppStorage(name: String, data: ByteArray): String? = runCatching {
+        val dir = File(context.getExternalFilesDir(null) ?: context.filesDir, "fps")
+        dir.mkdirs()
+        File(dir, name).writeBytes(data)
+        dir.absolutePath
+    }.onFailure { Log.e(TAG, "Unable to write FPS log to app storage", it) }.getOrNull()
+
+    private fun toast(resId: Int) {
+        toast(context.getString(resId))
+    }
+
+    private fun toast(text: CharSequence) {
+        mainHandler.post { Toast.makeText(context, text, Toast.LENGTH_LONG).show() }
+    }
+
+    companion object {
+        private const val TAG = "FpsRecorder"
+        private val RELATIVE_DIR = "${Environment.DIRECTORY_DOWNLOADS}/GameSpace"
+
+        /** Safety cap so a forgotten recording cannot grow without bound. */
+        private const val MAX_SAMPLES = 100_000
+    }
+}
