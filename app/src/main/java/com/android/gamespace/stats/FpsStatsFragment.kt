@@ -288,10 +288,10 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
             // Rows form one grouped list: big corners on the outside, small ones between rows.
             holder.itemView.setBackgroundResource(
                 when {
-                    items.size == 1 -> R.drawable.bg_session_item_single
-                    position == 0 -> R.drawable.bg_session_item_top
-                    position == items.lastIndex -> R.drawable.bg_session_item_bottom
-                    else -> R.drawable.bg_session_item_middle
+                    items.size == 1 -> R.drawable.bg_grouped_item_single
+                    position == 0 -> R.drawable.bg_grouped_item_top
+                    position == items.lastIndex -> R.drawable.bg_grouped_item_bottom
+                    else -> R.drawable.bg_grouped_item_middle
                 }
             )
 

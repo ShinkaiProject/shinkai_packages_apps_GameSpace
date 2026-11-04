@@ -13,5 +13,5 @@
         android:id="@+id/menu_more"
         android:actionLayout="@layout/action_more"
         android:showAsAction="always"
-        android:title="@string/fps_stats_more_options" />
+        android:title="@string/more_options" />
 </menu>

@@ -76,6 +76,24 @@
     <string name="fps_record_save_failed">Gagal menyimpan log FPS</string>
 
     <!-- Statistik FPS -->
+    <string name="panel_category">Panel game</string>
+    <string name="tile_layout_title">Tata letak tile</string>
+    <string name="tile_layout_summary">Ubah urutan, tambah, atau hapus tile di panel game</string>
+    <string name="tile_layout_active_title">Tile di panel</string>
+    <string name="tile_layout_active_hint">Seret gagang untuk mengubah urutan, atau ketuk tile untuk opsi lain. Panel menampilkan 4 tile per halaman.</string>
+    <string name="tile_layout_available_title">Tile tersedia</string>
+    <string name="tile_layout_available_hint">Ketuk tile untuk menambahkannya di akhir panel.</string>
+    <string name="tile_layout_page">Halaman <xliff:g id="page" example="2">%1$d</xliff:g></string>
+    <string name="tile_layout_empty_active">Tidak ada tile di panel</string>
+    <string name="tile_layout_empty_available">Semua tile sudah ada di panel</string>
+    <string name="tile_layout_move_front">Pindahkan ke paling depan</string>
+    <string name="tile_layout_move_up">Naikkan</string>
+    <string name="tile_layout_move_down">Turunkan</string>
+    <string name="tile_layout_remove">Hapus dari panel</string>
+    <string name="tile_layout_add">Tambahkan ke panel</string>
+    <string name="tile_layout_drag">Ubah urutan</string>
+    <string name="tile_layout_reset">Atur ulang ke default</string>
+    <string name="tile_layout_reset_message">Kembalikan tile dan urutannya ke default?</string>
     <string name="fps_statistics_category">Performa</string>
     <string name="fps_statistics_title">Statistik FPS</string>
     <string name="fps_statistics_summary">Lihat riwayat rekaman FPS</string>
@@ -84,7 +102,7 @@
     <string name="fps_stats_avg_fps_label">RATA-RATA FPS</string>
     <string name="fps_stats_delete">Hapus</string>
     <string name="fps_stats_delete_message">Hapus sesi FPS ini?</string>
-    <string name="fps_stats_more_options">Opsi lainnya</string>
+    <string name="more_options">Opsi lainnya</string>
     <string name="fps_stats_select">Pilih</string>
     <string name="fps_stats_select_all">Pilih semua</string>
     <string name="fps_stats_selected_count"><xliff:g id="count" example="3">%1$d</xliff:g> dipilih</string>

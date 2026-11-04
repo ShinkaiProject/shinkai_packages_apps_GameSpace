@@ -74,6 +74,12 @@
             android:label="@string/app_selector_label" />
 
         <activity
+            android:name=".tilelayout.TileLayoutActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/tile_layout_title" />
+
+        <activity
             android:name=".stats.FpsStatsActivity"
             android:excludeFromRecents="true"
             android:exported="false"

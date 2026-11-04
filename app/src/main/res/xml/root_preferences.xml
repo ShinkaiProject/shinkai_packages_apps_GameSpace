@@ -114,6 +114,21 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="panel_category"
+        android:title="@string/panel_category">
+
+        <Preference
+            android:key="tile_layout"
+            android:summary="@string/tile_layout_summary"
+            android:title="@string/tile_layout_title">
+            <intent
+                android:targetClass="com.android.gamespace.tilelayout.TileLayoutActivity"
+                android:targetPackage="com.android.gamespace" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="fps_statistics_category"
         android:title="@string/fps_statistics_category">
 

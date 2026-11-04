@@ -23,6 +23,7 @@ import android.widget.LinearLayout
 import androidx.core.view.doOnLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.android.gamespace.R
+import com.android.gamespace.data.TileLayoutModel
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.entryPointOf
@@ -90,7 +91,7 @@ class PanelView @JvmOverloads constructor(
 
     private fun populateTiles() {
         val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
-        val pages = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }.chunked(4)
+        val pages = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }.chunked(TileLayoutModel.TILES_PER_PAGE)
         pager.adapter = TilePagerAdapter(context, pages)
     }
 
