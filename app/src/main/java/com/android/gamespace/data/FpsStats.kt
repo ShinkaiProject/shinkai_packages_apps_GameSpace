@@ -34,9 +34,11 @@ class Range(val min: Float, val avg: Float, val max: Float) {
 /**
  * Statistics of a recorded session.
  *
- * FPS is reported by the system once per interval (about a second), so the "x% low" values are
- * the mean of the lowest x% of those reports (at least one), not of individual frames. Frame
- * time is derived from the reported FPS (1000 / fps).
+ * SurfaceFlinger reports FPS at most every 500 ms, and each report is the average over the frames
+ * it presented in its recent history (roughly the last half to one second). So min and max are
+ * those averaged values and a stutter shorter than that window is smoothed out. The "x% low"
+ * values are the mean of the lowest x% of the reports (at least one), not of individual frames.
+ * Frame time is derived from the reported FPS (1000 / fps).
  */
 class FpsStats(
     val sampleCount: Int,

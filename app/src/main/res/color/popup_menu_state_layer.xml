@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 state layer: on-surface at 10% for pressed and focused menu items -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:alpha="0.10"
+        android:color="@color/popupMenuOnSurface" />
+</selector>

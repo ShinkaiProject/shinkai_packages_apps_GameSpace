@@ -26,6 +26,7 @@ import com.android.gamespace.data.FpsSessionStore
 import com.android.gamespace.data.FpsStats
 import com.android.gamespace.data.Range
 import com.android.gamespace.widget.LineChartView
+import com.android.gamespace.widget.showMaterial3PopupMenu
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,13 +45,23 @@ class FpsSessionFragment : Fragment(R.layout.fragment_fps_session) {
     private val menuProvider = object : MenuProvider {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
             menuInflater.inflate(R.menu.fps_session_menu, menu)
+            menu.findItem(R.id.menu_more)?.actionView?.setOnClickListener { showMoreMenu(it) }
         }
 
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean = when (menuItem.itemId) {
             R.id.menu_share -> { share(); true }
             R.id.menu_save -> { saveDescription(notify = true); true }
-            R.id.menu_delete -> { confirmDelete(); true }
             else -> false
+        }
+    }
+
+    /** The Material 3 popup behind the toolbar's "more" button. */
+    private fun showMoreMenu(anchor: View) {
+        showMaterial3PopupMenu(anchor, R.menu.fps_session_popup_menu) { item ->
+            when (item.itemId) {
+                R.id.menu_delete -> { confirmDelete(); true }
+                else -> false
+            }
         }
     }
 

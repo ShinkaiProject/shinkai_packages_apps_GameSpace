@@ -28,6 +28,7 @@ import com.android.gamespace.data.SystemSettings
 import com.android.gamespace.utils.FpsRecorder
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
+import com.android.gamespace.utils.TaskFpsMonitor
 import javax.inject.Singleton
 
 
@@ -43,7 +44,12 @@ object MainModule {
 
     @Provides
     @Singleton
-    fun provideFpsRecorder(@ApplicationContext context: Context) = FpsRecorder(context)
+    fun provideTaskFpsMonitor(@ApplicationContext context: Context) = TaskFpsMonitor(context)
+
+    @Provides
+    @Singleton
+    fun provideFpsRecorder(@ApplicationContext context: Context, fpsMonitor: TaskFpsMonitor) =
+        FpsRecorder(context, fpsMonitor)
 
     @Provides
     @Singleton

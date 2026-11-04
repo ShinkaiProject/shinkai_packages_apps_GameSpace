@@ -28,6 +28,14 @@
         <item name="android:popupElevation">@dimen/popup_menu_elevation</item>
     </style>
 
+    <!-- Applied on top of the activity theme by showMaterial3PopupMenu() -->
+    <style name="ThemeOverlay.GameSpace.PopupMenu" parent="">
+        <item name="android:popupMenuStyle">@style/Widget.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
+        <item name="android:colorControlHighlight">@color/popup_menu_state_layer</item>
+    </style>
+
     <style name="TextAppearance.GameSpace.PopupMenu" parent="@android:style/TextAppearance.DeviceDefault.Widget.PopupMenu.Large">
         <item name="android:textColor">@color/popup_menu_text</item>
         <item name="android:textSize">@dimen/popup_menu_text_size</item>

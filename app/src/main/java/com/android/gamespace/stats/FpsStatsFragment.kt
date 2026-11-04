@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.gamespace.R
 import com.android.gamespace.data.FpsSessionStore
+import com.android.gamespace.widget.showMaterial3PopupMenu
 import java.util.Locale
 
 /**
@@ -54,18 +55,37 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
                 isVisible = selecting
                 isEnabled = selected.isNotEmpty()
             }
-            menu.findItem(R.id.menu_select_all)?.isVisible = selecting
-            menu.findItem(R.id.menu_select)?.isVisible = !selecting
-            menu.findItem(R.id.menu_delete_all)?.isVisible = !selecting
+            menu.findItem(R.id.menu_more)?.apply {
+                isVisible = sessions.isNotEmpty()
+                actionView?.setOnClickListener { showMoreMenu(it) }
+            }
         }
 
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean = when (menuItem.itemId) {
-            R.id.menu_select -> { enterSelection(null); true }
-            R.id.menu_select_all -> { selectAll(); true }
             R.id.menu_delete_selected -> { confirmDeleteSelected(); true }
-            R.id.menu_delete_all -> { confirmDeleteAll(); true }
             else -> false
         }
+    }
+
+    /** The Material 3 popup behind the toolbar's "more" button; its entries depend on the mode. */
+    private fun showMoreMenu(anchor: View) {
+        showMaterial3PopupMenu(
+            anchor = anchor,
+            menuRes = R.menu.fps_stats_popup_menu,
+            prepare = { menu ->
+                menu.findItem(R.id.menu_select_all)?.isVisible = selecting
+                menu.findItem(R.id.menu_select)?.isVisible = !selecting
+                menu.findItem(R.id.menu_delete_all)?.isVisible = !selecting
+            },
+            onItemClick = { item ->
+                when (item.itemId) {
+                    R.id.menu_select -> { enterSelection(null); true }
+                    R.id.menu_select_all -> { selectAll(); true }
+                    R.id.menu_delete_all -> { confirmDeleteAll(); true }
+                    else -> false
+                }
+            },
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -264,6 +284,16 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
             val duration = DateUtils.formatElapsedTime(info.durationMs / 1000)
             holder.summary.text = context.getString(R.string.fps_stats_item_summary, date, duration)
             holder.average.text = String.format(Locale.getDefault(), "%.1f", info.avgFps)
+
+            // Rows form one grouped list: big corners on the outside, small ones between rows.
+            holder.itemView.setBackgroundResource(
+                when {
+                    items.size == 1 -> R.drawable.bg_session_item_single
+                    position == 0 -> R.drawable.bg_session_item_top
+                    position == items.lastIndex -> R.drawable.bg_session_item_bottom
+                    else -> R.drawable.bg_session_item_middle
+                }
+            )
 
             val isSelected = selecting && info.id in selectedIds
             holder.check.visibility = if (selecting) View.VISIBLE else View.GONE

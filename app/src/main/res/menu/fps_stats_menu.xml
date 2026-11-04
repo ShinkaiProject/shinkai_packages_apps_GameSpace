@@ -8,20 +8,10 @@
         android:title="@string/fps_stats_delete"
         android:visible="false" />
 
+    <!-- Opens @menu/fps_stats_popup_menu as a Material 3 popup -->
     <item
-        android:id="@+id/menu_select_all"
-        android:showAsAction="never"
-        android:title="@string/fps_stats_select_all"
-        android:visible="false" />
-
-    <!-- Normal mode only -->
-    <item
-        android:id="@+id/menu_select"
-        android:showAsAction="never"
-        android:title="@string/fps_stats_select" />
-
-    <item
-        android:id="@+id/menu_delete_all"
-        android:showAsAction="never"
-        android:title="@string/fps_stats_delete_all" />
+        android:id="@+id/menu_more"
+        android:actionLayout="@layout/action_more"
+        android:showAsAction="always"
+        android:title="@string/fps_stats_more_options" />
 </menu>

@@ -1,15 +1,13 @@
 package com.android.gamespace.widget
 
-import android.app.ActivityTaskManager
 import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.window.TaskFpsCallback
 import com.android.gamespace.R
+import com.android.gamespace.utils.TaskFpsMonitor
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.entryPointOf
@@ -33,18 +31,15 @@ class MenuSwitcher @JvmOverloads constructor(
 
     private val appSettings by lazy { context.entryPointOf<ServiceViewEntryPoint>().appSettings() }
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
-    private val taskManager by lazy { ActivityTaskManager.getService() }
 
-    private val taskFpsCallback = object : TaskFpsCallback() {
-        override fun onFpsReported(fps: Float) {
-            if (isAttachedToWindow) {
-                onFrameUpdated(fps)
-            }
+    // Shared with the FPS recorder: the system reports FPS to one listener per task only.
+    private val fpsMonitor by lazy { context.entryPointOf<ServiceViewEntryPoint>().taskFpsMonitor() }
+
+    private val fpsListener = TaskFpsMonitor.Listener { fps ->
+        if (isAttachedToWindow) {
+            onFrameUpdated(fps)
         }
     }
-
-    private val wm: WindowManager
-        get() = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     private val content: TextView?
         get() = findViewById(R.id.menu_content)
@@ -90,11 +85,9 @@ class MenuSwitcher @JvmOverloads constructor(
 
     private fun updateFrameRateBinding() {
         if (showFps) {
-            taskManager?.focusedRootTaskInfo?.taskId?.let {
-                wm.registerTaskFpsCallback(it, Runnable::run, taskFpsCallback)
-            }
+            fpsMonitor.addListener(fpsListener)
         } else {
-            wm.unregisterTaskFpsCallback(taskFpsCallback)
+            fpsMonitor.removeListener(fpsListener)
         }
     }
 
@@ -122,6 +115,6 @@ class MenuSwitcher @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        wm.unregisterTaskFpsCallback(taskFpsCallback)
+        fpsMonitor.removeListener(fpsListener)
     }
 }

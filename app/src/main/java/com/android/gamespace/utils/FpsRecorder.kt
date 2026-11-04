@@ -12,7 +12,6 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
-import android.window.TaskFpsCallback
 import com.android.gamespace.R
 import com.android.gamespace.data.FpsSample
 import com.android.gamespace.data.FpsSessionStore
@@ -38,7 +37,10 @@ import kotlin.math.roundToInt
  * Recording is independent from the on-bar FPS counter, so it keeps running while the bar is
  * collapsed or the panel is closed. It is stopped automatically when the game session ends.
  */
-class FpsRecorder @Inject constructor(private val context: Context) {
+class FpsRecorder @Inject constructor(
+    private val context: Context,
+    private val fpsMonitor: TaskFpsMonitor,
+) {
 
     interface Listener {
         /** Called on the main thread when recording starts or stops. */
@@ -56,7 +58,7 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         val startElapsedMs: Long,
     ) {
         val samples = ArrayList<FpsSample>()
-        var callback: TaskFpsCallback? = null
+        var fpsListener: TaskFpsMonitor.Listener? = null
     }
 
     private val lock = Any()
@@ -114,20 +116,22 @@ class FpsRecorder @Inject constructor(private val context: Context) {
             startWallMs = System.currentTimeMillis(),
             startElapsedMs = SystemClock.elapsedRealtime(),
         )
-        val callback = object : TaskFpsCallback() {
-            override fun onFpsReported(fps: Float) = onSample(newSession, fps)
+        // Reports arrive on a binder thread: note when, then do the sysfs reads on our own thread.
+        val listener = TaskFpsMonitor.Listener { fps ->
+            val receivedAt = SystemClock.elapsedRealtime()
+            sampleExecutor.execute { onSample(newSession, fps, receivedAt) }
         }
-        newSession.callback = callback
+        newSession.fpsListener = listener
 
         // Publish the session first so the very first report is not dropped.
         synchronized(lock) { session = newSession }
 
-        try {
-            // Queued before the callback is registered, so it always runs before the first report.
-            sampleExecutor.execute { runCatching { sampler.reset() } }
-            wm.registerTaskFpsCallback(task.taskId, sampleExecutor, callback)
-        } catch (e: Exception) {
-            Log.e(TAG, "Unable to register task FPS callback", e)
+        // Queued before subscribing, so it always runs before the first report.
+        sampleExecutor.execute { runCatching { sampler.reset() } }
+
+        // Shares the single FPS registration with the on-bar counter; see TaskFpsMonitor.
+        if (!fpsMonitor.addListener(listener)) {
+            Log.e(TAG, "Unable to receive task FPS reports")
             synchronized(lock) { session = null }
             toast(R.string.fps_record_failed)
             return false
@@ -146,7 +150,7 @@ class FpsRecorder @Inject constructor(private val context: Context) {
     fun stop(blocking: Boolean = false) {
         val finished = synchronized(lock) { session.also { session = null } } ?: return
 
-        finished.callback?.let { runCatching { wm.unregisterTaskFpsCallback(it) } }
+        finished.fpsListener?.let { fpsMonitor.removeListener(it) }
         dispatchState(false)
 
         if (finished.samples.isEmpty()) {
@@ -158,7 +162,8 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         if (blocking) work.run() else saver.execute(work)
     }
 
-    private fun onSample(s: Session, fps: Float) {
+    /** @param receivedAt when the report arrived; sampling the sensors may lag behind it a little. */
+    private fun onSample(s: Session, fps: Float, receivedAt: Long) {
         if (session !== s) return
         val reading = runCatching { sampler.read() }.getOrNull()
 
@@ -166,7 +171,7 @@ class FpsRecorder @Inject constructor(private val context: Context) {
         val limitReached: Boolean
         synchronized(lock) {
             if (session !== s) return
-            elapsed = SystemClock.elapsedRealtime() - s.startElapsedMs
+            elapsed = (receivedAt - s.startElapsedMs).coerceAtLeast(0L)
             s.samples.add(
                 FpsSample(
                     elapsedMs = elapsed,
