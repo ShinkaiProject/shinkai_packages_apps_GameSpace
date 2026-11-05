@@ -71,6 +71,11 @@
     <string name="tile_layout_drag">Reorder</string>
     <string name="tile_layout_reset">Reset to default</string>
     <string name="tile_layout_reset_message">Restore the default tiles and their order?</string>
+    <string name="panel_edit_enter">Edit tiles</string>
+    <string name="panel_edit_done">Done</string>
+    <string name="panel_edit_active">Active</string>
+    <string name="panel_edit_available">Available</string>
+    <string name="panel_edit_hint">Hold and drag to reorder. Tap to add or remove.</string>
     <string name="fps_statistics_category">Performance</string>
     <string name="fps_statistics_title">FPS statistics</string>
     <string name="fps_statistics_summary">View recorded FPS sessions</string>

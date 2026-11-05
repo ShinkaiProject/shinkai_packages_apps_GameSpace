@@ -8,10 +8,12 @@ import android.media.AudioManager
 import android.os.BatteryManager
 import android.provider.Settings
 import android.transition.ChangeBounds
+import android.transition.Fade
 import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.LayoutInflater
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.ViewFlipper
@@ -20,7 +22,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import androidx.core.view.doOnLayout
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.android.gamespace.R
 import com.android.gamespace.data.TileLayoutModel
@@ -63,12 +67,15 @@ class PanelView @JvmOverloads constructor(
         populateTiles()
         setupControlsFlipper()
         setupSliderIcons()
+        setupEditButton()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         nowPlaying?.stop()
         nowPlaying = null
+        // The panel is reused, and attaching it builds its tiles again.
+        setEditing(false, animate = false, rebuildTiles = false)
     }
 
     private val panelContentTransition = ChangeBounds().apply {
@@ -93,6 +100,82 @@ class PanelView @JvmOverloads constructor(
         val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
         val pages = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }.chunked(TileLayoutModel.TILES_PER_PAGE)
         pager.adapter = TilePagerAdapter(context, pages)
+    }
+
+    private var editing = false
+    private var tileEditor: PanelTileEditor? = null
+
+    private fun setupEditButton() {
+        requireViewById<ImageButton>(R.id.panel_edit_button).setOnClickListener {
+            setEditing(!editing)
+        }
+    }
+
+    /** The container's bottom margin while it is given up for the editor; see [setEditing]. */
+    private var containerBottomMargin = 0
+
+    /**
+     * Swaps the panel's content for the tile editor, or back. Ending the edit shows the new tiles
+     * right away.
+     *
+     * The header stays where it is and the editor's list scrolls on its own below it, cut off at
+     * its edges. The list runs down to the bottom edge of the panel (the container gives up its
+     * bottom margin for it) and has the height the content had, so the panel keeps its size.
+     * Never taller than what the panel can show, so the panel itself has nothing to scroll and
+     * the header cannot be moved out of the way.
+     */
+    private fun setEditing(enabled: Boolean, animate: Boolean = true, rebuildTiles: Boolean = true) {
+        if (editing == enabled) return
+        editing = enabled
+
+        val normal = requireViewById<View>(R.id.panel_normal_content)
+        val list = requireViewById<RecyclerView>(R.id.panel_edit_list)
+        val container = requireViewById<ViewGroup>(R.id.panel_content_container)
+        val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
+        val button = requireViewById<ImageButton>(R.id.panel_edit_button)
+
+        if (animate) {
+            TransitionManager.beginDelayedTransition(
+                container,
+                Fade().apply { duration = 150L }
+            )
+        }
+
+        val containerParams = container.layoutParams as ViewGroup.MarginLayoutParams
+        if (enabled) {
+            val scroll = requireViewById<ScrollView>(R.id.panel_scroll)
+            val header = requireViewById<View>(R.id.panel_header)
+            scroll.scrollTo(0, 0)
+
+            containerBottomMargin = containerParams.bottomMargin
+            val listParams = list.layoutParams as ViewGroup.MarginLayoutParams
+            // As tall as the content was, counting the margin the list now takes over.
+            val sameSize = normal.height + containerBottomMargin - listParams.topMargin
+            val listTop = containerParams.topMargin + header.bottom + listParams.topMargin
+            val room = scroll.height - listTop
+            listParams.height = (if (room > 0) minOf(sameSize, room) else sameSize)
+                .coerceAtLeast(MIN_EDIT_HEIGHT.dp)
+            containerParams.bottomMargin = 0
+            container.layoutParams = containerParams
+
+            // Tiles that are not shown should not keep listening for updates.
+            pager.adapter = null
+            val editor = tileEditor
+                ?: PanelTileEditor(list, appSettings).also { tileEditor = it }
+            editor.open()
+        } else {
+            containerParams.bottomMargin = containerBottomMargin
+            container.layoutParams = containerParams
+            tileEditor?.close()
+            if (rebuildTiles) populateTiles()
+        }
+
+        normal.visibility = if (enabled) View.GONE else View.VISIBLE
+        list.visibility = if (enabled) View.VISIBLE else View.GONE
+        button.setImageResource(if (enabled) R.drawable.ic_check else R.drawable.ic_edit_tiles)
+        button.contentDescription = context.getString(
+            if (enabled) R.string.panel_edit_done else R.string.panel_edit_enter
+        )
     }
 
     private fun batteryTemperature() {
@@ -161,5 +244,10 @@ class PanelView @JvmOverloads constructor(
                 else -> R.drawable.ic_volume
             }
         )
+    }
+
+    private companion object {
+        /** The least height of the tile editor, in dp, for when the content is shorter. */
+        const val MIN_EDIT_HEIGHT = 240
     }
 }

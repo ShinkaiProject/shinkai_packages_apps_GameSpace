@@ -22,6 +22,7 @@
     app:cardCornerRadius="@*android:dimen/config_dialogCornerRadius">
 
     <ScrollView
+        android:id="@+id/panel_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="true"
@@ -37,15 +38,24 @@
             android:layout_marginEnd="12dp"
             android:layout_marginVertical="16dp">
 
-            <RelativeLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+            <LinearLayout
+                android:id="@+id/panel_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- The status pill stays centred in the space the edit button leaves -->
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:layout_gravity="center"
+                    android:orientation="horizontal"
                     android:gravity="center"
                     android:background="@drawable/status_background"
                     android:padding="6dp">
@@ -82,52 +92,88 @@
                     android:textSize="14sp" />
 
                 </LinearLayout>
-            </RelativeLayout>
+                </FrameLayout>
 
-            <FrameLayout
+                <!-- Switches the panel to editing its tiles and back; see PanelTileEditor -->
+                <ImageButton
+                    android:id="@+id/panel_edit_button"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/status_background"
+                    android:contentDescription="@string/panel_edit_enter"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    android:padding="6dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_edit_tiles"
+                    android:tint="?android:attr/textColorPrimaryInverse" />
+            </LinearLayout>
+
+            <!-- Everything under the header; replaced by the list below while editing tiles -->
+            <LinearLayout
+                android:id="@+id/panel_normal_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp">
+                android:orientation="vertical">
 
-                <ViewFlipper
-                    android:id="@+id/controls_flipper"
+                <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:inAnimation="@android:anim/slide_in_left"
-                    android:outAnimation="@android:anim/slide_out_right">
+                    android:layout_marginTop="10dp">
 
-                    <include layout="@layout/panel_controls_sliders" />
-                    <include layout="@layout/panel_controls_media" />
-                </ViewFlipper>
+                    <ViewFlipper
+                        android:id="@+id/controls_flipper"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:inAnimation="@android:anim/slide_in_left"
+                        android:outAnimation="@android:anim/slide_out_right">
 
-                <ImageView
-                    android:id="@+id/controls_nav_arrow"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center_vertical|end"
-                    android:layout_marginEnd="-10dp"
-                    android:padding="4dp"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="?android:attr/textColorPrimaryInverse" />
+                        <include layout="@layout/panel_controls_sliders" />
+                        <include layout="@layout/panel_controls_media" />
+                    </ViewFlipper>
 
-            </FrameLayout>
+                    <ImageView
+                        android:id="@+id/controls_nav_arrow"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center_vertical|end"
+                        android:layout_marginEnd="-10dp"
+                        android:padding="4dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="?android:attr/textColorPrimaryInverse" />
 
-            <com.android.gamespace.widget.QuickStartAppView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="6dp">
+                </FrameLayout>
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/quick_start_app_list"
+                <com.android.gamespace.widget.QuickStartAppView
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
-            </com.android.gamespace.widget.QuickStartAppView>
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="6dp">
 
-            <include layout="@layout/tiles" />
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/quick_start_app_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+                </com.android.gamespace.widget.QuickStartAppView>
 
-            <include layout="@layout/memview" />
+                <include layout="@layout/tiles" />
+
+                <include layout="@layout/memview" />
+            </LinearLayout>
+
+            <!-- Scrolls under the header: it must cut its rows off at its own edges (clipToPadding),
+                 or they are drawn over the status pill and past the bottom of the panel -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/panel_edit_list"
+                android:layout_width="match_parent"
+                android:layout_height="240dp"
+                android:layout_marginTop="8dp"
+                android:clipChildren="true"
+                android:clipToPadding="true"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                android:visibility="gone" />
 
         </LinearLayout>
     </ScrollView>
