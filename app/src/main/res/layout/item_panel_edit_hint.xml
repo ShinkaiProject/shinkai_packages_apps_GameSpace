@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The hint at the end of the tile editor. Its bottom padding keeps the text clear of the panel's
+     rounded corners once the list is scrolled to the end. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/edit_hint"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:paddingBottom="24dp"
+    android:paddingHorizontal="8dp"
+    android:paddingTop="12dp"
+    android:textColor="?android:attr/textColorSecondary"
+    android:textSize="11sp" />

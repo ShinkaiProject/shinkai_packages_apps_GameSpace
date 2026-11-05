@@ -22,8 +22,11 @@ sealed class PanelEditRow {
     /** A tile; [active] ones are in the panel, the others can be added to it. */
     data class Tile(val type: TileType, val active: Boolean) : PanelEditRow()
 
-    /** The hint under the grid, or what stands in for a group without tiles. */
+    /** What stands in for a group without tiles. */
     data class Note(@StringRes val textRes: Int) : PanelEditRow()
+
+    /** The hint at the very end of the grid. */
+    data class Hint(@StringRes val textRes: Int) : PanelEditRow()
 }
 
 class PanelEditAdapter(
@@ -50,6 +53,7 @@ class PanelEditAdapter(
                     a is PanelEditRow.Label && b is PanelEditRow.Label -> a.textRes == b.textRes
                     a is PanelEditRow.Tile && b is PanelEditRow.Tile -> a.type == b.type
                     a is PanelEditRow.Note && b is PanelEditRow.Note -> a.textRes == b.textRes
+                    a is PanelEditRow.Hint && b is PanelEditRow.Hint -> a.textRes == b.textRes
                     else -> false
                 }
             }
@@ -74,6 +78,7 @@ class PanelEditAdapter(
         is PanelEditRow.Label -> TYPE_LABEL
         is PanelEditRow.Tile -> TYPE_TILE
         is PanelEditRow.Note -> TYPE_NOTE
+        is PanelEditRow.Hint -> TYPE_HINT
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -82,6 +87,7 @@ class PanelEditAdapter(
             TYPE_RESET -> ResetHolder(inflater.inflate(R.layout.item_panel_edit_reset, parent, false))
             TYPE_LABEL -> TextHolder(inflater.inflate(R.layout.item_panel_edit_label, parent, false))
             TYPE_NOTE -> TextHolder(inflater.inflate(R.layout.item_panel_edit_note, parent, false))
+            TYPE_HINT -> TextHolder(inflater.inflate(R.layout.item_panel_edit_hint, parent, false))
             else -> TileHolder(inflater.inflate(R.layout.item_panel_edit_tile, parent, false))
         }
     }
@@ -91,6 +97,7 @@ class PanelEditAdapter(
             is PanelEditRow.Reset -> Unit
             is PanelEditRow.Label -> (holder as TextHolder).text.setText(row.textRes)
             is PanelEditRow.Note -> (holder as TextHolder).text.setText(row.textRes)
+            is PanelEditRow.Hint -> (holder as TextHolder).text.setText(row.textRes)
             is PanelEditRow.Tile -> (holder as TileHolder).bind(row)
         }
     }
@@ -127,5 +134,6 @@ class PanelEditAdapter(
         const val TYPE_LABEL = 1
         const val TYPE_TILE = 2
         const val TYPE_NOTE = 3
+        const val TYPE_HINT = 4
     }
 }

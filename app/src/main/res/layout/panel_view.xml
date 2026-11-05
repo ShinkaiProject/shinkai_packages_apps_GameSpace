@@ -22,6 +22,7 @@
     app:cardCornerRadius="@*android:dimen/config_dialogCornerRadius">
 
     <ScrollView
+        android:id="@+id/panel_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="true"
@@ -38,6 +39,7 @@
             android:layout_marginVertical="16dp">
 
             <LinearLayout
+                android:id="@+id/panel_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -160,12 +162,15 @@
                 <include layout="@layout/memview" />
             </LinearLayout>
 
+            <!-- Scrolls under the header: it must cut its rows off at its own edges (clipToPadding),
+                 or they are drawn over the status pill and past the bottom of the panel -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/panel_edit_list"
                 android:layout_width="match_parent"
                 android:layout_height="240dp"
-                android:layout_marginTop="10dp"
-                android:clipToPadding="false"
+                android:layout_marginTop="8dp"
+                android:clipChildren="true"
+                android:clipToPadding="true"
                 android:overScrollMode="never"
                 android:scrollbars="none"
                 android:visibility="gone" />

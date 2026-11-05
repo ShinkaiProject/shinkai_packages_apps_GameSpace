@@ -1,5 +1,6 @@
 package com.android.gamespace.widget
 
+import android.graphics.Rect
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import androidx.recyclerview.widget.GridLayoutManager
@@ -64,6 +65,13 @@ class PanelTileEditor(
         (list.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         touchHelper.attachToRecyclerView(list)
 
+        // The grid scrolls under the panel's header, so what scrolls past its top or bottom edge
+        // must be cut off there. The layout does this too (clipToPadding); this keeps it so
+        // however the parents are set up to clip.
+        list.addOnLayoutChangeListener { v, left, top, right, bottom, _, _, _, _ ->
+            v.clipBounds = Rect(0, 0, right - left, bottom - top)
+        }
+
         // The panel scrolls too, and would take a vertical gesture away from the grid; the grid
         // keeps the ones that start on it.
         list.isNestedScrollingEnabled = false
@@ -99,7 +107,7 @@ class PanelTileEditor(
         if (available.isEmpty()) rows += PanelEditRow.Note(R.string.tile_layout_empty_available)
         available.mapTo(rows) { PanelEditRow.Tile(it, active = false) }
 
-        rows += PanelEditRow.Note(R.string.panel_edit_hint)
+        rows += PanelEditRow.Hint(R.string.panel_edit_hint)
         return rows
     }
 
