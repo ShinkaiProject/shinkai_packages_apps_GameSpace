@@ -21,7 +21,7 @@ import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.android.gamespace.R
-import com.android.gamespace.data.FpsSample
+import com.android.gamespace.data.FpsSamples
 import com.android.gamespace.data.FpsSessionStore
 import com.android.gamespace.data.FpsStats
 import com.android.gamespace.data.Range
@@ -103,11 +103,11 @@ class FpsSessionFragment : Fragment(R.layout.fragment_fps_session) {
         val id = activity.intent.getStringExtra(FpsSessionActivity.EXTRA_ID)
         Thread {
             val loaded = id?.let { store.info(it) }
-            val samples = loaded?.let { store.loadSamples(it.id) }.orEmpty()
-            val computed = FpsStats.of(samples)
+            val samples = loaded?.let { store.loadSamples(it.id) }
+            val computed = samples?.let { FpsStats.of(it) }
             activity.runOnUiThread {
                 if (!isAdded || view == null) return@runOnUiThread
-                if (loaded == null || computed == null) {
+                if (loaded == null || samples == null || computed == null) {
                     Toast.makeText(activity, R.string.fps_stats_not_found, Toast.LENGTH_SHORT).show()
                     activity.finish()
                 } else {
@@ -119,7 +119,7 @@ class FpsSessionFragment : Fragment(R.layout.fragment_fps_session) {
         }.start()
     }
 
-    private fun bind(info: FpsSessionStore.Info, samples: List<FpsSample>, stats: FpsStats) {
+    private fun bind(info: FpsSessionStore.Info, samples: FpsSamples, stats: FpsStats) {
         val view = requireView()
         val context = requireContext()
         requireActivity().title = info.label
@@ -176,61 +176,85 @@ class FpsSessionFragment : Fragment(R.layout.fragment_fps_session) {
         row.addView(cell)
     }
 
+    /**
+     * The charts share their working arrays: one with the time of every sample and two to collect
+     * the points of the chart being built. Nothing is allocated per point.
+     */
+    private class ChartInput(samples: FpsSamples) {
+        val count = samples.size
+        val seconds = FloatArray(count) { samples.elapsedMs[it] / 1000f }
+        val scratchX = FloatArray(count)
+        val scratchY = FloatArray(count)
+    }
+
     private fun bindCharts(
         container: LinearLayout,
-        samples: List<FpsSample>,
+        samples: FpsSamples,
         stats: FpsStats,
     ) {
-        fun points(value: (FpsSample) -> Float) = samples
-            .map { it.elapsedMs / 1000f to value(it) }
-            .filter { !it.second.isNaN() && !it.second.isInfinite() }
+        val input = ChartInput(samples)
+        val fps = samples.fps
+        val frameTimes = FloatArray(input.count) {
+            if (fps[it] > 0f) 1000f / fps[it] else Float.NaN
+        }
 
         addChart(
-            container, R.string.fps_stats_chart_fps, R.string.fps_stats_legend_fps, COLOR_FPS,
-            points { it.fps }, stats.fps, 0f
+            container, input, R.string.fps_stats_chart_fps, R.string.fps_stats_legend_fps, COLOR_FPS,
+            fps, stats.fps, 0f
         ) { fmt(it) }
         addChart(
-            container, R.string.fps_stats_chart_battery_temp, R.string.fps_stats_legend_battery_temp,
-            COLOR_BATTERY_TEMP, points { it.batteryTempC }, stats.batteryTemp, 0f
+            container, input, R.string.fps_stats_chart_battery_temp,
+            R.string.fps_stats_legend_battery_temp, COLOR_BATTERY_TEMP,
+            samples.batteryTempC, stats.batteryTemp, 0f
         ) { fmt(it) + "°C" }
         addChart(
-            container, R.string.fps_stats_chart_frame_time, R.string.fps_stats_legend_frame_time,
-            COLOR_FRAME_TIME, points { if (it.fps > 0f) 1000f / it.fps else Float.NaN },
-            stats.frameTime, 0f
+            container, input, R.string.fps_stats_chart_frame_time,
+            R.string.fps_stats_legend_frame_time, COLOR_FRAME_TIME,
+            frameTimes, stats.frameTime, 0f
         ) { fmt(it) + "ms" }
         addChart(
-            container, R.string.fps_stats_chart_cpu_usage, R.string.fps_stats_legend_cpu_usage,
-            COLOR_CPU_USAGE, points { it.cpuUsagePct }, stats.cpuUsage, 100f
+            container, input, R.string.fps_stats_chart_cpu_usage,
+            R.string.fps_stats_legend_cpu_usage, COLOR_CPU_USAGE,
+            samples.cpuUsagePct, stats.cpuUsage, 100f
         ) { fmt(it) + "%" }
         addChart(
-            container, R.string.fps_stats_chart_cpu_temp, R.string.fps_stats_legend_cpu_temp,
-            COLOR_CPU_TEMP, points { it.cpuTempC }, stats.cpuTemp, 0f
+            container, input, R.string.fps_stats_chart_cpu_temp,
+            R.string.fps_stats_legend_cpu_temp, COLOR_CPU_TEMP,
+            samples.cpuTempC, stats.cpuTemp, 0f
         ) { fmt(it) + "°C" }
         addChart(
-            container, R.string.fps_stats_chart_power, R.string.fps_stats_legend_power,
-            COLOR_POWER, points { it.powerW }, stats.power, 0f
+            container, input, R.string.fps_stats_chart_power, R.string.fps_stats_legend_power,
+            COLOR_POWER, samples.powerW, stats.power, 0f
         ) { fmt(it, 2) + "W" }
     }
 
     /** Adds a chart section; sections without data (sensor not readable) are left out. */
     private fun addChart(
         container: LinearLayout,
+        input: ChartInput,
         @StringRes title: Int,
         @StringRes legend: Int,
         color: Int,
-        points: List<Pair<Float, Float>>,
+        values: FloatArray,
         range: Range?,
         minAxisMax: Float,
         format: (Float) -> String,
     ) {
-        if (points.isEmpty() || range == null) return
+        // Collect the points that have a value: a sensor that could not be read leaves NaN.
+        var points = 0
+        for (i in 0 until input.count) {
+            val v = values[i]
+            if (v.isNaN() || v.isInfinite()) continue
+            input.scratchX[points] = input.seconds[i]
+            input.scratchY[points] = v
+            points++
+        }
+        if (points == 0 || range == null) return
+
         val section = layoutInflater.inflate(R.layout.item_chart_section, container, false)
         section.findViewById<TextView>(R.id.chart_title).setText(title)
-        section.findViewById<LineChartView>(R.id.chart).setData(
-            FloatArray(points.size) { points[it].first },
-            FloatArray(points.size) { points[it].second },
-            color, minAxisMax
-        )
+        section.findViewById<LineChartView>(R.id.chart)
+            .setData(input.scratchX, input.scratchY, color, minAxisMax, points)
         section.findViewById<View>(R.id.legend_dot).backgroundTintList = ColorStateList.valueOf(color)
         section.findViewById<TextView>(R.id.legend_name).setText(legend)
         section.findViewById<TextView>(R.id.stat_max).text =

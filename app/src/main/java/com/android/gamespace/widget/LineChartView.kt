@@ -29,8 +29,14 @@ class LineChartView @JvmOverloads constructor(
 
     private var xSeconds = FloatArray(0)
     private var values = FloatArray(0)
+    private var dataMax = 0f
     private var lineColor = Color.GREEN
     private var minAxisMax = 0f
+
+    // The fill gradient only depends on these, so it is rebuilt when one of them changes.
+    private var shaderTop = Float.NaN
+    private var shaderBottom = Float.NaN
+    private var shaderColor = 0
 
     private val density = resources.displayMetrics.density
     private val labelColor: Int = context
@@ -61,14 +67,26 @@ class LineChartView @JvmOverloads constructor(
     private val fillPath = Path()
 
     /**
+     * The arrays are copied (and thinned out if there are more points than the view can show), so
+     * the caller may reuse them.
+     *
      * @param xSeconds elapsed time of every point, ascending
-     * @param values value of every point (same length as [xSeconds])
+     * @param values value of every point
      * @param minAxisMax the Y axis is at least this tall, e.g. 100 for percentages
+     * @param count how many of the leading entries of the arrays are points
      */
-    fun setData(xSeconds: FloatArray, values: FloatArray, color: Int, minAxisMax: Float = 0f) {
-        require(xSeconds.size == values.size) { "x and y must have the same length" }
-        this.xSeconds = xSeconds.copyOf()
-        this.values = values.copyOf()
+    fun setData(
+        xSeconds: FloatArray,
+        values: FloatArray,
+        color: Int,
+        minAxisMax: Float = 0f,
+        count: Int = xSeconds.size,
+    ) {
+        require(count <= xSeconds.size && count <= values.size) { "not enough points for count" }
+        val series = ChartDecimator.decimate(xSeconds, values, count, MAX_POINTS)
+        this.xSeconds = series.x
+        this.values = series.y
+        this.dataMax = series.y.maxOrNull() ?: 0f
         this.lineColor = color
         this.minAxisMax = minAxisMax
         invalidate()
@@ -77,7 +95,6 @@ class LineChartView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val dataMax = values.maxOrNull() ?: 0f
         val (yMax, yStep) = niceAxis(max(dataMax, minAxisMax))
 
         // Time axis: seconds, or minutes for long sessions.
@@ -150,13 +167,23 @@ class LineChartView @JvmOverloads constructor(
         fillPath.lineTo(px(xSeconds.last()), bottom)
         fillPath.close()
 
-        fillPaint.shader = LinearGradient(
-            0f, top, 0f, bottom,
-            withAlpha(lineColor, 120), withAlpha(lineColor, 10), Shader.TileMode.CLAMP
-        )
+        if (shaderTop != top || shaderBottom != bottom || shaderColor != lineColor) {
+            shaderTop = top
+            shaderBottom = bottom
+            shaderColor = lineColor
+            fillPaint.shader = LinearGradient(
+                0f, top, 0f, bottom,
+                withAlpha(lineColor, 120), withAlpha(lineColor, 10), Shader.TileMode.CLAMP
+            )
+        }
         canvas.drawPath(fillPath, fillPaint)
         linePaint.color = lineColor
         canvas.drawPath(linePath, linePaint)
+    }
+
+    private companion object {
+        /** More points than there are pixels across add nothing to the picture. */
+        const val MAX_POINTS = 1200
     }
 
     private fun withAlpha(color: Int, alpha: Int) = (color and 0x00FFFFFF) or (alpha shl 24)

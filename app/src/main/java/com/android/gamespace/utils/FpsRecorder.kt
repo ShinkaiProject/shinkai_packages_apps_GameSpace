@@ -7,23 +7,30 @@ import android.content.pm.PackageManager
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import com.android.gamespace.R
-import com.android.gamespace.data.FpsSample
+import com.android.gamespace.data.FpsCsv
+import com.android.gamespace.data.FpsSamples
 import com.android.gamespace.data.FpsSessionStore
 import com.android.gamespace.data.FpsStats
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStream
 import java.text.SimpleDateFormat
-import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -36,6 +43,11 @@ import kotlin.math.roundToInt
  *
  * Recording is independent from the on-bar FPS counter, so it keeps running while the bar is
  * collapsed or the panel is closed. It is stopped automatically when the game session ends.
+ *
+ * It is built to stay out of the game's way: samples go into primitive arrays, the sensors are
+ * read on a background-priority thread that only exists while there is something to do, nothing
+ * is posted to the main thread unless a listener asked for samples, and saving streams the CSV
+ * to disk instead of building it in memory.
  */
 class FpsRecorder @Inject constructor(
     private val context: Context,
@@ -46,7 +58,10 @@ class FpsRecorder @Inject constructor(
         /** Called on the main thread when recording starts or stops. */
         fun onStateChanged(recording: Boolean) {}
 
-        /** Called on the main thread for every FPS sample received while recording. */
+        /**
+         * Called on the main thread for every FPS sample received while recording. Only listeners
+         * added with `wantsSamples = true` get these.
+         */
         fun onSample(elapsedMs: Long, fps: Float) {}
     }
 
@@ -57,12 +72,13 @@ class FpsRecorder @Inject constructor(
         val startWallMs: Long,
         val startElapsedMs: Long,
     ) {
-        val samples = ArrayList<FpsSample>()
+        val samples = FpsSamples()
         var fpsListener: TaskFpsMonitor.Listener? = null
     }
 
     private val lock = Any()
-    private val listeners = CopyOnWriteArrayList<Listener>()
+    private val stateListeners = CopyOnWriteArrayList<Listener>()
+    private val sampleListeners = CopyOnWriteArrayList<Listener>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val wm by lazy { context.getSystemService(Context.WINDOW_SERVICE) as WindowManager }
     private val store by lazy { FpsSessionStore(context) }
@@ -70,12 +86,8 @@ class FpsRecorder @Inject constructor(
 
     // FPS reports are handled on their own thread so reading sysfs never blocks a binder thread.
     // Being single threaded it also keeps the sampler's state consistent.
-    private val sampleExecutor by lazy {
-        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder-sample").apply { isDaemon = true } }
-    }
-    private val saver by lazy {
-        Executors.newSingleThreadExecutor { Thread(it, "FpsRecorder-save").apply { isDaemon = true } }
-    }
+    private val sampleExecutor by lazy { backgroundExecutor("FpsRecorder-sample") }
+    private val saver by lazy { backgroundExecutor("FpsRecorder-save") }
 
     @Volatile
     private var session: Session? = null
@@ -87,12 +99,18 @@ class FpsRecorder @Inject constructor(
     val elapsedMs: Long
         get() = session?.let { SystemClock.elapsedRealtime() - it.startElapsedMs } ?: 0L
 
-    fun addListener(listener: Listener) {
-        listeners.addIfAbsent(listener)
+    /**
+     * @param wantsSamples also call [Listener.onSample]. Leave it off when only the state matters:
+     * every sample listener costs a main thread wake-up for each FPS report while recording.
+     */
+    fun addListener(listener: Listener, wantsSamples: Boolean = false) {
+        stateListeners.addIfAbsent(listener)
+        if (wantsSamples) sampleListeners.addIfAbsent(listener)
     }
 
     fun removeListener(listener: Listener) {
-        listeners.remove(listener)
+        stateListeners.remove(listener)
+        sampleListeners.remove(listener)
     }
 
     /**
@@ -165,7 +183,7 @@ class FpsRecorder @Inject constructor(
     /** @param receivedAt when the report arrived; sampling the sensors may lag behind it a little. */
     private fun onSample(s: Session, fps: Float, receivedAt: Long) {
         if (session !== s) return
-        val reading = runCatching { sampler.read() }.getOrNull()
+        val reading = runCatching { sampler.read(receivedAt) }.getOrNull()
 
         val elapsed: Long
         val limitReached: Boolean
@@ -173,23 +191,24 @@ class FpsRecorder @Inject constructor(
             if (session !== s) return
             elapsed = (receivedAt - s.startElapsedMs).coerceAtLeast(0L)
             s.samples.add(
-                FpsSample(
-                    elapsedMs = elapsed,
-                    fps = fps,
-                    batteryTempC = reading?.batteryTempC ?: Float.NaN,
-                    powerW = reading?.powerW ?: Float.NaN,
-                    cpuUsagePct = reading?.cpuUsagePct ?: Float.NaN,
-                    cpuTempC = reading?.cpuTempC ?: Float.NaN,
-                )
+                elapsedMs = elapsed,
+                fps = fps,
+                batteryTempC = reading?.batteryTempC ?: Float.NaN,
+                powerW = reading?.powerW ?: Float.NaN,
+                cpuUsagePct = reading?.cpuUsagePct ?: Float.NaN,
+                cpuTempC = reading?.cpuTempC ?: Float.NaN,
             )
             limitReached = s.samples.size >= MAX_SAMPLES
         }
-        mainHandler.post { listeners.forEach { it.onSample(elapsed, fps) } }
+        // Waking the main thread twice a second for nobody would be pure waste.
+        if (sampleListeners.isNotEmpty()) {
+            mainHandler.post { sampleListeners.forEach { it.onSample(elapsed, fps) } }
+        }
         if (limitReached) mainHandler.post { stop() }
     }
 
     private fun dispatchState(recording: Boolean) {
-        mainHandler.post { listeners.forEach { it.onStateChanged(recording) } }
+        mainHandler.post { stateListeners.forEach { it.onStateChanged(recording) } }
     }
 
     private fun appLabel(packageName: String): String = runCatching {
@@ -204,24 +223,33 @@ class FpsRecorder @Inject constructor(
     }.getOrDefault("")
 
     private fun save(finished: Session) {
-        val stats = FpsStats.of(finished.samples) ?: return
+        val samples = finished.samples
+        val stats = FpsStats.of(samples) ?: return
 
         val stored = runCatching {
             store.save(
                 FpsSessionStore.Meta(
                     finished.packageName, finished.label, finished.startWallMs, finished.resolution
                 ),
-                finished.samples
+                samples,
+                stats
             )
         }.onFailure { Log.e(TAG, "Unable to store FPS session", it) }.getOrNull()
 
         val name = "fps_${finished.packageName}_" +
             "${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(finished.startWallMs))}.csv"
-        val data = FpsSessionStore.encodeCsv(finished.samples, finished.startWallMs)
-            .toByteArray(Charsets.UTF_8)
-        val exported = saveToDownloads(name, data)
+
+        // The stored copy is exactly the file to export, so copy it rather than encode it again.
+        val storedCsv = stored?.let { store.csvFile(it.id) }?.takeIf { it.exists() }
+        val writeCsv: (OutputStream) -> Unit = if (storedCsv != null) {
+            { out -> FileInputStream(storedCsv).use { it.copyTo(out, COPY_BUFFER) } }
+        } else {
+            { out -> FpsCsv.write(samples, finished.startWallMs, out) }
+        }
+
+        val exported = saveToDownloads(name, writeCsv)
             // Only fall back to app storage when the session is not kept by the store either.
-            ?: if (stored == null) saveToAppStorage(name, data) else null
+            ?: if (stored == null) saveToAppStorage(name, writeCsv) else null
 
         val location = exported
             ?: if (stored != null) context.getString(R.string.fps_statistics_title) else null
@@ -240,7 +268,7 @@ class FpsRecorder @Inject constructor(
     }
 
     /** @return the folder the file was written to, or null on failure. */
-    private fun saveToDownloads(name: String, data: ByteArray): String? {
+    private fun saveToDownloads(name: String, writeCsv: (OutputStream) -> Unit): String? {
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
@@ -253,7 +281,7 @@ class FpsRecorder @Inject constructor(
 
         return try {
             val stream = resolver.openOutputStream(uri) ?: throw IOException("No output stream")
-            stream.use { it.write(data) }
+            stream.use(writeCsv)
             values.clear()
             values.put(MediaStore.MediaColumns.IS_PENDING, 0)
             resolver.update(uri, values, null, null)
@@ -266,10 +294,10 @@ class FpsRecorder @Inject constructor(
     }
 
     /** Fallback when MediaStore is unavailable. */
-    private fun saveToAppStorage(name: String, data: ByteArray): String? = runCatching {
+    private fun saveToAppStorage(name: String, writeCsv: (OutputStream) -> Unit): String? = runCatching {
         val dir = File(context.getExternalFilesDir(null) ?: context.filesDir, "fps")
         dir.mkdirs()
-        File(dir, name).writeBytes(data)
+        FileOutputStream(File(dir, name)).use(writeCsv)
         dir.absolutePath
     }.onFailure { Log.e(TAG, "Unable to write FPS log to app storage", it) }.getOrNull()
 
@@ -283,6 +311,26 @@ class FpsRecorder @Inject constructor(
 
     companion object {
         private const val TAG = "FpsRecorder"
+        private const val COPY_BUFFER = 16 * 1024
+
+        /** How long a worker thread stays around after its last job. */
+        private const val IDLE_THREAD_SECONDS = 10L
+
+        /**
+         * One worker that runs jobs in order on a background-priority thread (so the game keeps the
+         * big cores) and gives the thread up when it has been idle for a while: nothing stays
+         * alive between recordings.
+         */
+        private fun backgroundExecutor(name: String) = ThreadPoolExecutor(
+            1, 1, IDLE_THREAD_SECONDS, TimeUnit.SECONDS, LinkedBlockingQueue<Runnable>(),
+            ThreadFactory { job ->
+                Thread({
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+                    job.run()
+                }, name).apply { isDaemon = true }
+            }
+        ).apply { allowCoreThreadTimeOut(true) }
+
         private val RELATIVE_DIR = "${Environment.DIRECTORY_DOWNLOADS}/GameSpace"
 
         /** Safety cap so a forgotten recording cannot grow without bound. */
