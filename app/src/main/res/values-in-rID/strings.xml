@@ -94,6 +94,11 @@
     <string name="tile_layout_drag">Ubah urutan</string>
     <string name="tile_layout_reset">Atur ulang ke default</string>
     <string name="tile_layout_reset_message">Kembalikan tile dan urutannya ke default?</string>
+    <string name="panel_edit_enter">Ubah tile</string>
+    <string name="panel_edit_done">Selesai</string>
+    <string name="panel_edit_active">Aktif</string>
+    <string name="panel_edit_available">Tersedia</string>
+    <string name="panel_edit_hint">Tahan dan seret untuk mengubah urutan. Ketuk untuk menambah atau menghapus.</string>
     <string name="fps_statistics_category">Performa</string>
     <string name="fps_statistics_title">Statistik FPS</string>
     <string name="fps_statistics_summary">Lihat riwayat rekaman FPS</string>

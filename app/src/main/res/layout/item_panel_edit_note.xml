@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The hint under the lists, and the text that stands in for a list without tiles -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/edit_note"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="12dp"
+    android:textColor="?android:attr/textColorSecondary"
+    android:textSize="11sp" />

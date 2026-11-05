@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/edit_reset"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="end|center_vertical"
+    android:minHeight="40dp"
+    android:paddingHorizontal="12dp"
+    android:text="@string/tile_layout_reset"
+    android:textColor="?android:attr/textColorPrimary"
+    android:textSize="12sp" />
