@@ -1,7 +1,9 @@
 package com.android.gamespace.stats
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.LayoutInflater
@@ -39,6 +41,7 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
     )
     private var emptyView: View? = null
     private var sessions: List<FpsSessionStore.Info> = emptyList()
+    private var loadedOnce = false
 
     private var selecting = false
     private val selected = linkedSetOf<String>()
@@ -122,6 +125,7 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
 
     override fun onDestroyView() {
         emptyView = null
+        loadedOnce = false // a new view has to be brought up to date, even if the sessions are the same
         super.onDestroyView()
     }
 
@@ -132,6 +136,9 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
             val loaded = store.list()
             activity.runOnUiThread {
                 if (!isAdded || view == null) return@runOnUiThread
+                // Coming back from a session usually changes nothing; do not rebuild the list then.
+                if (loadedOnce && sameSessions(sessions, loaded)) return@runOnUiThread
+                loadedOnce = true
                 sessions = loaded
                 // Forget selected sessions that no longer exist; nothing to select in an empty list.
                 selected.retainAll(loaded.map { it.id }.toSet())
@@ -141,6 +148,13 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
                 applySelectionState()
             }
         }.start()
+    }
+
+    /** Whether both lists show the same sessions; what a row displays never changes for an id. */
+    private fun sameSessions(a: List<FpsSessionStore.Info>, b: List<FpsSessionStore.Info>): Boolean {
+        if (a.size != b.size) return false
+        for (i in a.indices) if (a[i].id != b[i].id) return false
+        return true
     }
 
     private fun onItemClick(info: FpsSessionStore.Info) {
@@ -239,6 +253,10 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
         private var selecting = false
         private var selectedIds: Set<String> = emptySet()
 
+        // Most sessions are of the same few games, and looking an icon up goes through the package
+        // manager, so each icon is fetched once and every row gets its own copy of it.
+        private val icons = HashMap<String, Drawable.ConstantState>()
+
         class Holder(view: View) : RecyclerView.ViewHolder(view) {
             val check: CheckBox = view.findViewById(R.id.session_check)
             val icon: ImageView = view.findViewById(android.R.id.icon)
@@ -266,15 +284,22 @@ class FpsStatsFragment : Fragment(R.layout.fragment_fps_stats) {
 
         override fun getItemCount() = items.size
 
+        private fun iconOf(context: Context, packageName: String): Drawable {
+            icons[packageName]?.let { return it.newDrawable(context.resources) }
+
+            val pm = context.packageManager
+            val icon = runCatching { pm.getApplicationIcon(packageName) }.getOrNull()
+                ?: pm.defaultActivityIcon
+            // A drawable without a constant state cannot be copied, so it is not kept.
+            icon.constantState?.let { icons[packageName] = it }
+            return icon
+        }
+
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val info = items[position]
             val context = holder.itemView.context
-            val pm = context.packageManager
 
-            holder.icon.setImageDrawable(
-                runCatching { pm.getApplicationIcon(info.packageName) }
-                    .getOrDefault(pm.defaultActivityIcon)
-            )
+            holder.icon.setImageDrawable(iconOf(context, info.packageName))
             holder.title.text = info.label
 
             val date = DateUtils.formatDateTime(

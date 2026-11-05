@@ -4,29 +4,32 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
 
-/**
- * One reading taken while recording. Metrics the device could not provide are NaN.
- */
-class FpsSample(
-    val elapsedMs: Long,
-    val fps: Float,
-    val batteryTempC: Float = Float.NaN,
-    val powerW: Float = Float.NaN,
-    val cpuUsagePct: Float = Float.NaN,
-    val cpuTempC: Float = Float.NaN,
-)
-
 class Range(val min: Float, val avg: Float, val max: Float) {
     companion object {
-        /** @return null when there is no finite value to summarize. */
-        fun of(values: List<Float>): Range? {
-            val finite = values.filter { !it.isNaN() && !it.isInfinite() }
-            if (finite.isEmpty()) return null
-            return Range(
-                min = finite.minOrNull() ?: return null,
-                avg = finite.average().toFloat(),
-                max = finite.maxOrNull() ?: return null,
-            )
+        /**
+         * Minimum, mean and maximum of the finite values among the first [size] of [values].
+         * @return null when there is no finite value to summarize.
+         */
+        fun of(values: FloatArray, size: Int = values.size): Range? {
+            var count = 0
+            var sum = 0.0
+            var min = 0f
+            var max = 0f
+            for (i in 0 until size) {
+                val v = values[i]
+                if (v.isNaN() || v.isInfinite()) continue
+                if (count == 0) {
+                    min = v
+                    max = v
+                } else {
+                    min = minOf(min, v)
+                    max = maxOf(max, v)
+                }
+                sum += v
+                count++
+            }
+            if (count == 0) return null
+            return Range(min, (sum / count).toFloat(), max)
         }
     }
 }
@@ -39,6 +42,9 @@ class Range(val min: Float, val avg: Float, val max: Float) {
  * those averaged values and a stutter shorter than that window is smoothed out. The "x% low"
  * values are the mean of the lowest x% of the reports (at least one), not of individual frames.
  * Frame time is derived from the reported FPS (1000 / fps).
+ *
+ * Everything is computed from primitive arrays in one sorted copy of the FPS values, so the work
+ * and the memory it needs stay small even for a session of 100 000 samples.
  */
 class FpsStats(
     val sampleCount: Int,
@@ -61,53 +67,96 @@ class FpsStats(
         get() = listOfNotNull(cpuTemp?.max, batteryTemp?.max).maxOrNull()
 
     companion object {
-        fun of(samples: List<FpsSample>): FpsStats? {
-            if (samples.isEmpty()) return null
+        fun of(samples: FpsSamples): FpsStats? {
+            val n = samples.size
+            if (n == 0) return null
 
-            val fpsValues = samples.map { it.fps }
-            val fpsSorted = fpsValues.sorted()
-            val fpsRange = Range.of(fpsValues) ?: return null
+            val fps = samples.fps
+            val fpsRange = Range.of(fps, n) ?: return null
 
-            val frameTimes = fpsValues.filter { it > 0f }.map { 1000f / it }.sorted()
-            val frameTimeRange = Range.of(frameTimes) ?: Range(0f, 0f, 0f)
+            // Ascending; NaN, if there is any, sorts after everything else.
+            val sorted = fps.copyOf(n).also { it.sort() }
 
             val mean = fpsRange.avg
-            val variance = fpsValues.fold(0.0) { acc, v ->
-                val d = v - mean
-                acc + d * d
-            } / fpsValues.size
+            var squares = 0.0
+            for (i in 0 until n) {
+                val d = fps[i] - mean
+                squares += d * d
+            }
+            val variance = squares / n
+
+            // Frame time is 1000 / fps, so the ascending frame times are the positive FPS values
+            // taken from the highest down. That gives them sorted without a second sort.
+            var end = n
+            while (end > 0 && sorted[end - 1].isNaN()) end--
+            var start = end
+            while (start > 0 && sorted[start - 1] > 0f) start--
+            val frameTimeCount = end - start
+            fun frameTime(rank: Int) = 1000f / sorted[end - 1 - rank]
 
             return FpsStats(
-                sampleCount = samples.size,
-                durationMs = samples.maxOf { it.elapsedMs },
+                sampleCount = n,
+                durationMs = maxElapsed(samples),
                 fps = fpsRange,
-                low1 = lowAverage(fpsSorted, 0.01),
-                low01 = lowAverage(fpsSorted, 0.001),
-                low5 = lowAverage(fpsSorted, 0.05),
+                low1 = lowAverage(sorted, n, 0.01),
+                low01 = lowAverage(sorted, n, 0.001),
+                low5 = lowAverage(sorted, n, 0.05),
                 fpsStdDev = sqrt(variance).toFloat(),
-                frameTime = frameTimeRange,
-                frameTimeP95 = percentile(frameTimes, 95.0),
-                frameTimeP99 = percentile(frameTimes, 99.0),
-                batteryTemp = Range.of(samples.map { it.batteryTempC }),
-                power = Range.of(samples.map { it.powerW }),
-                cpuUsage = Range.of(samples.map { it.cpuUsagePct }),
-                cpuTemp = Range.of(samples.map { it.cpuTempC }),
+                frameTime = frameTimeRange(frameTimeCount, ::frameTime),
+                frameTimeP95 = if (frameTimeCount == 0) 0f else frameTime(percentileRank(95.0, frameTimeCount)),
+                frameTimeP99 = if (frameTimeCount == 0) 0f else frameTime(percentileRank(99.0, frameTimeCount)),
+                batteryTemp = Range.of(samples.batteryTempC, n),
+                power = Range.of(samples.powerW, n),
+                cpuUsage = Range.of(samples.cpuUsagePct, n),
+                cpuTemp = Range.of(samples.cpuTempC, n),
             )
         }
 
-        /** Mean of the lowest [fraction] of [sortedAscending] (at least one value). */
-        fun lowAverage(sortedAscending: List<Float>, fraction: Double): Float {
-            if (sortedAscending.isEmpty()) return 0f
-            // The epsilon keeps e.g. 700 * 0.01 (= 7.000000000000001) from rounding up to 8.
-            val count = max(1, ceil(sortedAscending.size * fraction - 1e-9).toInt())
-            return sortedAscending.take(count).average().toFloat()
+        private fun maxElapsed(samples: FpsSamples): Long {
+            var max = samples.elapsedMs[0]
+            for (i in 1 until samples.size) if (samples.elapsedMs[i] > max) max = samples.elapsedMs[i]
+            return max
         }
 
-        /** Nearest-rank percentile of [sortedAscending]; 0 when empty. */
-        fun percentile(sortedAscending: List<Float>, percent: Double): Float {
-            if (sortedAscending.isEmpty()) return 0f
-            val rank = ceil(percent / 100.0 * sortedAscending.size - 1e-9).toInt()
-            return sortedAscending[(rank - 1).coerceIn(0, sortedAscending.lastIndex)]
+        /** Range of the finite frame times; all zero when there are none. */
+        private fun frameTimeRange(count: Int, frameTime: (Int) -> Float): Range {
+            var finite = 0
+            var sum = 0.0
+            var min = 0f
+            var max = 0f
+            for (rank in 0 until count) {
+                val v = frameTime(rank)
+                if (v.isNaN() || v.isInfinite()) continue
+                if (finite == 0) {
+                    min = v
+                    max = v
+                } else {
+                    min = minOf(min, v)
+                    max = maxOf(max, v)
+                }
+                sum += v
+                finite++
+            }
+            return if (finite == 0) Range(0f, 0f, 0f) else Range(min, (sum / finite).toFloat(), max)
+        }
+
+        /**
+         * Mean of the lowest [fraction] of the first [size] values of [sortedAscending] (at least
+         * one value).
+         */
+        fun lowAverage(sortedAscending: FloatArray, size: Int, fraction: Double): Float {
+            if (size == 0) return 0f
+            // The epsilon keeps e.g. 700 * 0.01 (= 7.000000000000001) from rounding up to 8.
+            val count = max(1, ceil(size * fraction - 1e-9).toInt())
+            var sum = 0.0
+            for (i in 0 until count) sum += sortedAscending[i]
+            return (sum / count).toFloat()
+        }
+
+        /** Zero-based index of the nearest-rank percentile in a sorted list of [size] values. */
+        private fun percentileRank(percent: Double, size: Int): Int {
+            val rank = ceil(percent / 100.0 * size - 1e-9).toInt()
+            return (rank - 1).coerceIn(0, size - 1)
         }
     }
 }

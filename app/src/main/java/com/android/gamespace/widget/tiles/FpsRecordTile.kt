@@ -19,16 +19,23 @@ class FpsRecordTile @JvmOverloads constructor(
 
     private val recorder by lazy { context.entryPointOf<ServiceViewEntryPoint>().fpsRecorder() }
 
+    /** The whole second the summary currently shows, so it is only redrawn when that changes. */
+    private var shownSecond = -1L
+
     private val listener = object : FpsRecorder.Listener {
         override fun onStateChanged(recording: Boolean) = render()
-        override fun onSample(elapsedMs: Long, fps: Float) = render()
+
+        // Samples arrive twice a second but the timer only counts whole seconds.
+        override fun onSample(elapsedMs: Long, fps: Float) {
+            if (elapsedMs / 1000 != shownSecond) render()
+        }
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         title?.text = context.getString(R.string.fps_record_title)
         icon?.setImageResource(R.drawable.ic_fps_record)
-        recorder.addListener(listener)
+        recorder.addListener(listener, wantsSamples = true)
         render()
     }
 
@@ -40,10 +47,12 @@ class FpsRecordTile @JvmOverloads constructor(
     private fun render() {
         val recording = recorder.isRecording
         isSelected = recording
+        val seconds = recorder.elapsedMs / 1000
+        shownSecond = if (recording) seconds else -1L
         summary?.text = if (recording) {
             context.getString(
                 R.string.fps_record_summary_recording,
-                DateUtils.formatElapsedTime(recorder.elapsedMs / 1000)
+                DateUtils.formatElapsedTime(seconds)
             )
         } else {
             context.getString(R.string.fps_record_summary_idle)
