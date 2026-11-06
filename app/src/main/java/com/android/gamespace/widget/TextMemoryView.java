@@ -16,27 +16,24 @@
  */
 package com.android.gamespace.widget;
 
-import android.app.ActivityManager;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
 import com.android.gamespace.R;
+import com.android.gamespace.utils.MemoryUsageMonitor;
 
 public class TextMemoryView extends TextView {
 
-    private ActivityManager mActivityManager;
-    private Handler mHandler;
-    private MemInfoWorker mWorker;
+    private final MemoryUsageMonitor mMonitor;
+
+    private final MemoryUsageMonitor.Listener mListener = percent ->
+            setText(getContext().getString(R.string.ram_usage) + " " + percent + "%");
 
     public TextMemoryView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        mHandler = new Handler(Looper.getMainLooper());
-        mWorker = new MemInfoWorker();
+        mMonitor = MemoryUsageMonitor.get(context);
     }
 
     @Override
@@ -44,9 +41,9 @@ public class TextMemoryView extends TextView {
         super.setVisibility(visibility);
 
         if (visibility == VISIBLE) {
-            mHandler.post(mWorker);
+            mMonitor.addListener(mListener);
         } else {
-            mHandler.removeCallbacks(mWorker);
+            mMonitor.removeListener(mListener);
         }
     }
 
@@ -61,18 +58,4 @@ public class TextMemoryView extends TextView {
         setVisibility(GONE);
         super.onDetachedFromWindow();
     }
-
-    private class MemInfoWorker implements Runnable {
-        @Override
-        public void run() {
-            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-            mActivityManager.getMemoryInfo(memoryInfo);
-            long usedMemory = memoryInfo.totalMem - memoryInfo.availMem;
-            int usedMemoryPercentage = (int) ((usedMemory * 100) / memoryInfo.totalMem);
-            String ramUsage = getContext().getString(R.string.ram_usage) + " " + usedMemoryPercentage + "%";
-            setText(ramUsage);
-            mHandler.postDelayed(this, 1000);
-        }
-    }
 }
-

@@ -19,6 +19,7 @@ package com.android.gamespace.data
 
 import android.app.Service
 import android.content.Context
+import android.content.SharedPreferences
 import android.view.WindowManager
 import androidx.preference.PreferenceManager
 import com.android.gamespace.utils.dp
@@ -29,6 +30,16 @@ class AppSettings @Inject constructor(private val context: Context) {
 
     private val db by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
     private val wm by lazy { context.getSystemService(Service.WINDOW_SERVICE) as WindowManager }
+
+    /**
+     * Calls [listener] on the main thread when a setting changes. The preferences keep only a weak
+     * reference to it, so the caller has to hold on to it for as long as it wants to listen.
+     */
+    fun registerOnChange(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
+        db.registerOnSharedPreferenceChangeListener(listener)
+
+    fun unregisterOnChange(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
+        db.unregisterOnSharedPreferenceChangeListener(listener)
 
     var x
         get() = db.getInt("offset_x", wm.maximumWindowMetrics.bounds.width() / 2)

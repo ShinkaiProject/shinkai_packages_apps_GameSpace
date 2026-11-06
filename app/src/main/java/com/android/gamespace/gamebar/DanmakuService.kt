@@ -24,6 +24,7 @@ import android.animation.ValueAnimator
 import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -38,6 +39,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
+import android.widget.FrameLayout
 import android.widget.TextView
 
 import androidx.core.animation.addListener
@@ -46,6 +48,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ServiceScoped
 
 import java.util.LinkedList
+
+import kotlin.math.ceil
 
 import javax.inject.Inject
 
@@ -75,6 +79,26 @@ class DanmakuService @Inject constructor(
         isClickable = false
     }
 
+    /**
+     * What is added to the window. The window is only ever resized or moved when the screen is
+     * rotated: the slide in and out is done by moving [notificationOverlay] inside of it, which
+     * costs a redraw. Moving the window instead is a call to the window manager for every single
+     * frame of the animation.
+     */
+    private val overlayRoot = FrameLayout(context).apply {
+        isFocusable = false
+        isClickable = false
+        // The text moves into the padding, which is where the room for the slide is.
+        clipToPadding = false
+        addView(
+            notificationOverlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
     private val windowManager: WindowManager = context.getSystemService(WindowManager::class.java)!!
 
     private val handler = Handler(Looper.getMainLooper())
@@ -100,26 +124,58 @@ class DanmakuService @Inject constructor(
     private var overlayAlphaAnimator: ValueAnimator? = null
     private var overlayPositionAnimator: ValueAnimator? = null
 
+    private val popRunnable = Runnable { popNotification() }
+
+    private var listenerRegistered = false
+    private var destroyed = false
+
+    // The preferences hold their listeners weakly, so this has to stay referenced from here.
+    private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == AppSettings.KEY_DANMAKU_NOTIFICATION_MODE) syncListener()
+    }
+
     fun init() {
+        destroyed = false
         notificationListener = DanmakuServiceListener()
         notificationListener.danmakuServiceInterface = this
         updateParams()
-        registerListener()
+        appSettings.registerOnChange(settingsListener)
+        syncListener()
     }
 
     fun updateConfiguration(newConfig: Configuration) {
         isPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT
-        overlayAlphaAnimator?.end()
-        overlayPositionAnimator?.end()
+        // end() on an animator that is not running would play it once more, and run its end
+        // action (which schedules the next step) a second time.
+        overlayAlphaAnimator?.takeIf { it.isRunning }?.end()
+        overlayPositionAnimator?.takeIf { it.isRunning }?.end()
         updateParams()
-        updateViewLayoutSafely(layoutParams)
+        if (overlayPositionAnimator?.isRunning != true) {
+            notificationOverlay.translationY = (getOffsetForPosition() - layoutParams.y).toFloat()
+        }
+        updateViewLayoutSafely()
     }
 
     fun destroy() {
-        unregisterListener()
-        overlayAlphaAnimator?.cancel()
-        overlayPositionAnimator?.cancel()
-        removeViewSafely()
+        destroyed = true
+        appSettings.unregisterOnChange(settingsListener)
+        if (listenerRegistered) unregisterListener()
+        dismissOverlay()
+    }
+
+    /**
+     * Listens to the notifications only while the Danmaku setting is on. Without it every
+     * notification that is posted during the game would still be sent to this process to be
+     * looked at, only to be thrown away.
+     */
+    private fun syncListener() {
+        if (destroyed) return
+        if (appSettings.danmakuNotification) {
+            if (!listenerRegistered) registerListener()
+        } else if (listenerRegistered) {
+            unregisterListener()
+            dismissOverlay()
+        }
     }
 
     private fun registerListener() {
@@ -130,17 +186,36 @@ class DanmakuService @Inject constructor(
                 componentName,
                 UserHandle.USER_CURRENT
             )
+            listenerRegistered = true
         } catch (e: RemoteException) {
             Log.e(TAG, "RemoteException while registering danmaku service")
         }
     }
 
     private fun unregisterListener() {
+        listenerRegistered = false
         try {
             notificationListener.unregisterAsSystemService()
         } catch (e: RemoteException) {
-            Log.e(TAG, "RemoteException while registering danmaku service")
+            Log.e(TAG, "RemoteException while unregistering danmaku service")
         }
+    }
+
+    /** Stops whatever is on screen and what is still waiting to be shown. */
+    private fun dismissOverlay() {
+        handler.removeCallbacks(popRunnable)
+        // The end action of an animator also runs when it is cancelled, and that would carry on
+        // with the next notification.
+        overlayAlphaAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        overlayPositionAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        notificationStack.clear()
+        removeViewSafely()
     }
 
     private fun updateParams() {
@@ -150,7 +225,8 @@ class DanmakuService @Inject constructor(
             verticalOffsetPortrait =
                 getDimensionPixelSize(R.dimen.notification_vertical_offset_portrait)
         }
-        layoutParams.y = getOffsetForPosition()
+        layoutParams.y = windowTop()
+        overlayRoot.setPadding(0, 0, 0, slideTravel())
         layoutParams.width = (NOTIFICATION_MAX_WIDTH * windowManager.currentWindowMetrics.bounds.width()) / 100
         notificationOverlay.setTextSize(
             TypedValue.COMPLEX_UNIT_PX,
@@ -158,15 +234,29 @@ class DanmakuService @Inject constructor(
         )
     }
 
+    /** Distance from the top of the screen of the notification while it is shown. */
     private fun getOffsetForPosition(): Int {
         return if (isPortrait) verticalOffsetPortrait else verticalOffsetLandscape
     }
 
+    /** Where the window is: at the highest point of the slide. */
+    private fun windowTop(): Int =
+        (getOffsetForPosition() * (1 - SLIDE_ANIMATION_DISTANCE_FACTOR)).toInt()
+
+    /** How far the text moves from the top of the window to the lowest point of the slide. */
+    private fun slideTravel(): Int =
+        ceil(getOffsetForPosition() * 2 * SLIDE_ANIMATION_DISTANCE_FACTOR).toInt() + 1
+
+    private fun prepareNotification(text: String) {
+        notificationOverlay.alpha = 0f
+        notificationOverlay.translationY = 0f
+        notificationOverlay.text = text
+    }
+
     override fun showNotificationAsOverlay(notification: String) {
-        if (notificationOverlay.parent == null) {
-            notificationOverlay.alpha = 0f
-            notificationOverlay.text = notification
-            windowManager.addView(notificationOverlay, layoutParams)
+        if (overlayRoot.parent == null) {
+            prepareNotification(notification)
+            windowManager.addView(overlayRoot, layoutParams)
             pushNotification()
         } else {
             notificationStack.add(notification)
@@ -192,9 +282,7 @@ class DanmakuService @Inject constructor(
         val start = end * (1 - SLIDE_ANIMATION_DISTANCE_FACTOR)
         overlayPositionAnimator = getPositionAnimator(APPEAR_ANIMATION_DURATION, start, end).also {
             it.addListener(onEnd = {
-                handler.postDelayed({
-                    popNotification()
-                }, DISPLAY_NOTIFICATION_DURATION)
+                handler.postDelayed(popRunnable, DISPLAY_NOTIFICATION_DURATION)
             })
             it.start()
         }
@@ -210,8 +298,7 @@ class DanmakuService @Inject constructor(
                     if (notificationStack.isEmpty()) {
                         removeViewSafely()
                     } else {
-                        notificationOverlay.alpha = 0f
-                        notificationOverlay.text = notificationStack.pop()
+                        prepareNotification(notificationStack.pop())
                         pushNotification()
                     }
                 })
@@ -220,13 +307,12 @@ class DanmakuService @Inject constructor(
         startAlphaAnimation(DISAPPEAR_ANIMATION_DURATION, 1f, 0f)
     }
 
+    /** [values] are distances from the top of the screen. */
     private fun getPositionAnimator(duration: Long, vararg values: Float): ValueAnimator {
-        val lpCopy = LayoutParams().also { it.copyFrom(layoutParams) }
         return ValueAnimator.ofFloat(*values).apply {
             this.duration = duration
             addUpdateListener {
-                lpCopy.y = (it.animatedValue as Float).toInt()
-                updateViewLayoutSafely(lpCopy)
+                notificationOverlay.translationY = (it.animatedValue as Float) - layoutParams.y
             }
         }
     }
@@ -240,14 +326,14 @@ class DanmakuService @Inject constructor(
         }.also { it.start() }
     }
 
-    private fun updateViewLayoutSafely(layoutParams: LayoutParams) {
-        if (notificationOverlay.parent != null)
-            windowManager.updateViewLayout(notificationOverlay, layoutParams)
+    private fun updateViewLayoutSafely() {
+        if (overlayRoot.parent != null)
+            windowManager.updateViewLayout(overlayRoot, layoutParams)
     }
 
     private fun removeViewSafely() {
-        if (notificationOverlay.parent != null)
-            windowManager.removeViewImmediate(notificationOverlay)
+        if (overlayRoot.parent != null)
+            windowManager.removeViewImmediate(overlayRoot)
     }
 
     companion object {
@@ -264,7 +350,5 @@ class DanmakuService @Inject constructor(
         private const val NOTIFICATION_SIZE_PORTRAIT = 60
 
         private const val NOTIFICATION_MAX_WIDTH = 75
-
-        private const val NOTIFICATIONS_MAX_CACHED = 99
     }
 }

@@ -32,9 +32,11 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -66,6 +68,8 @@ public class QuickStartAppView extends LinearLayout {
     private SettingsContentObserver mObserver;
     private PackageManager mPackageManager;
     private ActivityOptions mActivityOptions;
+    private boolean mIconsApplied;
+    private String mAppliedPackages;
 
     public QuickStartAppView(Context context) {
         super(context);
@@ -91,14 +95,17 @@ public class QuickStartAppView extends LinearLayout {
 
     private void init(Context context) {
         mContext = context;
-        mObserver = new SettingsContentObserver(new Handler());
-        mContext.getContentResolver().registerContentObserver(
-                Settings.System.getUriFor("quick_start_apps"), true, mObserver);
+        mObserver = new SettingsContentObserver(new Handler(Looper.getMainLooper()));
         mPackageManager = mContext.getPackageManager();
     }
 
     private void updateAppIcons() {
+        if (recyclerView == null) return;
         String appPackageNames = Settings.System.getString(mContext.getContentResolver(), "quick_start_apps");
+        // Not building the same list again: this also runs every time the panel is opened.
+        if (mIconsApplied && TextUtils.equals(appPackageNames, mAppliedPackages)) return;
+        mIconsApplied = true;
+        mAppliedPackages = appPackageNames;
         if (appPackageNames != null && !appPackageNames.isEmpty()) {
             String[] packages = appPackageNames.split(",");
             if (packages.length > 0) {
@@ -162,6 +169,18 @@ public class QuickStartAppView extends LinearLayout {
             super.onChange(selfChange, uri);
             updateAppIcons();
         }
+    }
+
+    // The panel is built once and then attached and detached every time it is opened and closed,
+    // so the observer has to follow that and not the creation of the view: registered in init(),
+    // it was gone after the first time the panel was closed.
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        mContext.getContentResolver().registerContentObserver(
+                Settings.System.getUriFor("quick_start_apps"), true, mObserver);
+        // It may have changed while nobody was listening.
+        updateAppIcons();
     }
 
     @Override

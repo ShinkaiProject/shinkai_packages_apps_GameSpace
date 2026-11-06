@@ -57,8 +57,6 @@ class CallListener @Inject constructor(
 
     private val telephonyCallback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
         override fun onCallStateChanged(state: Int) {
-            if (callsMode == 0) return
-
             when (state) {
                 TelephonyManager.CALL_STATE_RINGING -> handleIncomingCall()
                 TelephonyManager.CALL_STATE_OFFHOOK -> handleOffhookState()
@@ -67,11 +65,23 @@ class CallListener @Inject constructor(
         }
     }
 
+    private var registered = false
+
+    /**
+     * Starts watching the call state. With the calls mode off there is nothing to react to, and
+     * the system would still wake this process for every change of the call state, so it does not
+     * listen at all. (The mode is read once, when the session starts, so it cannot be switched on
+     * half way anyway.)
+     */
     fun init() {
+        if (callsMode == 0 || registered) return
         telephonyManager.registerTelephonyCallback(context.mainExecutor, telephonyCallback)
+        registered = true
     }
 
     fun destroy() {
+        if (!registered) return
+        registered = false
         telephonyManager.unregisterTelephonyCallback(telephonyCallback)
     }
 

@@ -16,31 +16,23 @@
  */
 package com.android.gamespace.widget;
 
-import android.app.ActivityManager;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.ProgressBar;
 
-import java.lang.Runnable;
-
-import com.android.gamespace.R;
+import com.android.gamespace.utils.MemoryUsageMonitor;
 
 public class MemoryView extends ProgressBar {
 
-    private ActivityManager mActivityManager;
+    private final MemoryUsageMonitor mMonitor;
 
-    private Handler mHandler;
-    private MemInfoWorker mWorker;
+    private final MemoryUsageMonitor.Listener mListener = this::setProgress;
 
     public MemoryView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        mHandler = new Handler(Looper.getMainLooper());
-        mWorker = new MemInfoWorker();
+        mMonitor = MemoryUsageMonitor.get(context);
+        setMax(100);
     }
 
     /* Hijack this method to detect visibility rather than
@@ -51,9 +43,9 @@ public class MemoryView extends ProgressBar {
         super.setVisibility(visibility);
 
         if (visibility == VISIBLE)
-            mHandler.post(mWorker);
+            mMonitor.addListener(mListener);
         else
-            mHandler.removeCallbacks(mWorker);
+            mMonitor.removeListener(mListener);
     }
 
     @Override
@@ -66,18 +58,5 @@ public class MemoryView extends ProgressBar {
     public void onDetachedFromWindow() {
         setVisibility(GONE);
         super.onDetachedFromWindow();
-    }
-
-    private class MemInfoWorker implements Runnable {
-        @Override
-        public void run() {
-            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-            mActivityManager.getMemoryInfo(memoryInfo);
-            long usedMemory = memoryInfo.totalMem - memoryInfo.availMem;
-            int usedMemoryPercentage = (int) ((usedMemory * 100) / memoryInfo.totalMem);
-            setMax(100);
-            setProgress(usedMemoryPercentage);
-            mHandler.postDelayed(this, 1000);
-        }
     }
 }
