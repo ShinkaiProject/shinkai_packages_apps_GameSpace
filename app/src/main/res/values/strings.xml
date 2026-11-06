@@ -211,6 +211,19 @@
      <string name="mobile_data_title">Mobile Data</string>
      <string name="airplane_mode_title">Airplane Mode</string>
      <string name="dnd_title">DND Mode</string>
+     <string name="auto_rotate_title">Auto-rotate</string>
+     <string name="battery_saver_title">Battery Saver</string>
+     <string name="hotspot_title">Hotspot</string>
+     <string name="location_title">Location (GPS)</string>
+     <string name="private_dns_title">Private DNS</string>
+     <string name="private_dns_off">Off</string>
+     <string name="private_dns_auto">Automatic</string>
+     <string name="private_dns_Strict">Custom Host</string>
+     <string name="flashlight_title">Flashlight</string>
+     <string name="night_light_title">Night Light</string>
+     <string name="adaptive_brightness_title">Auto Brightness</string>
+     <string name="auto_sync_title">Auto-sync</string>
+     <string name="bypass_charge_tile_title">Bypass Charge</string>
 
      <!-- Music Control -->
      <string name="media_no_session">No media playing</string>

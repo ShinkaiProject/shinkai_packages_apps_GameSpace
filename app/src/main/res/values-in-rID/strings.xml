@@ -203,6 +203,19 @@
      <string name="mobile_data_title">Data Seluller</string>
      <string name="airplane_mode_title">Mode Pesawat</string>
      <string name="dnd_title">Mode jangan Ganggu</string>
+     <string name="auto_rotate_title">Putar Otomatis</string>
+     <string name="battery_saver_title">Penghemat Baterai</string>
+     <string name="hotspot_title">Hotspot</string>
+     <string name="location_title">Lokasi (GPS)</string>
+     <string name="private_dns_title">DNS Pribadi</string>
+     <string name="private_dns_off">Mati</string>
+     <string name="private_dns_auto">Otomatis</string>
+     <string name="private_dns_Strict">Host Kustom</string>
+     <string name="flashlight_title">Senter</string>
+     <string name="night_light_title">Cahaya Malam</string>
+     <string name="adaptive_brightness_title">Kecerahan Otomatis</string>
+     <string name="auto_sync_title">Sinkron Otomatis</string>
+     <string name="bypass_charge_tile_title">Bypass Charging</string>
 
      <!-- Music Control -->
      <string name="media_no_session">Tidak Ada Media Di Putar</string>
