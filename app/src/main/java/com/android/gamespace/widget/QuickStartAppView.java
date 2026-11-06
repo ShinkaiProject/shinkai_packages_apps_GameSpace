@@ -15,57 +15,43 @@
  */
 package com.android.gamespace.widget;
 
-import static android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED;
-
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityOptions;
-import android.app.WindowConfiguration;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.database.ContentObserver;
-import android.graphics.Point;
-import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.RemoteException;
+import android.os.Looper;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.AttributeSet;
-import android.view.Display;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.window.SplashScreen;
 
 import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import com.android.gamespace.R;
 
 public class QuickStartAppView extends LinearLayout {
+    private static final LruCache<String, Drawable> sIconCache = new LruCache<>(24);
+
     private RecyclerView recyclerView;
+    private MyRecyclerViewAdapter mAdapter;
     private Context mContext;
     private SettingsContentObserver mObserver;
-    private PackageManager mPackageManager;
-    private ActivityOptions mActivityOptions;
+    private boolean mObserverRegistered = false;
 
     public QuickStartAppView(Context context) {
         super(context);
@@ -86,39 +72,68 @@ public class QuickStartAppView extends LinearLayout {
     protected void onFinishInflate() {
         super.onFinishInflate();
         recyclerView = findViewById(R.id.quick_start_app_list);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemAnimator(null);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(mContext, RecyclerView.HORIZONTAL, false);
+        recyclerView.setLayoutManager(layoutManager);
+        mAdapter = new MyRecyclerViewAdapter(mContext);
+        recyclerView.setAdapter(mAdapter);
         updateAppIcons();
     }
 
     private void init(Context context) {
         mContext = context;
-        mObserver = new SettingsContentObserver(new Handler());
-        mContext.getContentResolver().registerContentObserver(
-                Settings.System.getUriFor("quick_start_apps"), true, mObserver);
-        mPackageManager = mContext.getPackageManager();
+        mObserver = new SettingsContentObserver(new Handler(Looper.getMainLooper()));
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (!mObserverRegistered) {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("quick_start_apps"), true, mObserver);
+            mObserverRegistered = true;
+        }
+        updateAppIcons();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (mObserverRegistered) {
+            mContext.getContentResolver().unregisterContentObserver(mObserver);
+            mObserverRegistered = false;
+        }
+        super.onDetachedFromWindow();
     }
 
     private void updateAppIcons() {
+        if (mAdapter == null) return;
         String appPackageNames = Settings.System.getString(mContext.getContentResolver(), "quick_start_apps");
         if (appPackageNames != null && !appPackageNames.isEmpty()) {
             String[] packages = appPackageNames.split(",");
             if (packages.length > 0) {
-                setupAppIcons(packages);
+                mAdapter.setData(Arrays.asList(packages));
                 setVisibility(View.VISIBLE);
-            } else {
-                setVisibility(View.GONE);
+                return;
             }
-        } else {
-            setVisibility(View.GONE);
         }
+        setVisibility(View.GONE);
     }
 
-    private void setupAppIcons(String[] packages) {
-        recyclerView.setHasFixedSize(true);//设置固定大小
-        recyclerView.setItemAnimator(new DefaultItemAnimator());//设置默认动画
-        LinearLayoutManager mLayoutManage = new LinearLayoutManager(mContext);
-        mLayoutManage.setOrientation(RecyclerView.HORIZONTAL);//设置滚动方向，横向滚动
-        recyclerView.setLayoutManager(mLayoutManage);
-        recyclerView.setAdapter(new MyRecyclerViewAdapter(recyclerView, Arrays.asList(packages)));
+    private Drawable getCachedAppIcon(String packageName) {
+        Drawable cached = sIconCache.get(packageName);
+        if (cached != null) return cached;
+        try {
+            PackageManager pm = mContext.getPackageManager();
+            ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+            Drawable icon = pm.getApplicationIcon(appInfo);
+            if (icon != null) {
+                sIconCache.put(packageName, icon);
+            }
+            return icon;
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
     }
 
     private void setupAppIcon(ImageView imageView, @Nullable String packageName) {
@@ -126,12 +141,12 @@ public class QuickStartAppView extends LinearLayout {
         if (packageName == null || packageName.isEmpty()) {
             imageView.setVisibility(GONE);
         } else {
-            try {
-                ApplicationInfo appInfo = mContext.getPackageManager().getApplicationInfo(packageName, 0);
-                imageView.setImageDrawable(mContext.getPackageManager().getApplicationIcon(appInfo));
+            Drawable icon = getCachedAppIcon(packageName);
+            if (icon != null) {
+                imageView.setImageDrawable(icon);
                 imageView.setOnClickListener(v -> launchAppInFreeformMode(packageName));
                 imageView.setVisibility(VISIBLE);
-            } catch (PackageManager.NameNotFoundException e) {
+            } else {
                 imageView.setVisibility(GONE);
             }
         }
@@ -141,7 +156,7 @@ public class QuickStartAppView extends LinearLayout {
         try {
             PackageManager packageManager = mContext.getPackageManager();
             Intent launchIntent = packageManager.getLaunchIntentForPackage(packageName);
-            if (launchIntent != null) {
+            if (launchIntent != null && launchIntent.getComponent() != null) {
                 String activityName = launchIntent.getComponent().getClassName();
                 Intent freeformIntent = new Intent("com.libremobileos.freeform.START_FREEFORM")
                         .setPackage("com.libremobileos.freeform")
@@ -150,7 +165,7 @@ public class QuickStartAppView extends LinearLayout {
                         .putExtra("userId", UserHandle.myUserId());
                 mContext.sendBroadcast(freeformIntent);
             }
-        } catch (Exception e) {}
+        } catch (Exception ignored) {}
     }
 
     private class SettingsContentObserver extends ContentObserver {
@@ -164,31 +179,20 @@ public class QuickStartAppView extends LinearLayout {
         }
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        mContext.getContentResolver().unregisterContentObserver(mObserver);
-    }
-
     public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.RecyclerHolder> {
-        private Context mContext;
-        private List<String> dataList = new ArrayList<>();
+        private final Context mContext;
+        private final List<String> dataList = new ArrayList<>();
 
-        public MyRecyclerViewAdapter(RecyclerView recyclerView) {
-            this.mContext = recyclerView.getContext();
+        public MyRecyclerViewAdapter(Context context) {
+            this.mContext = context;
         }
 
-        public MyRecyclerViewAdapter(RecyclerView recyclerView, List<String> dataList) {
-            this.mContext = recyclerView.getContext();
-            setData(dataList);
-        }
-
-        public void setData(List<String> dataList) {
-            if (null != dataList) {
-                this.dataList.clear();
-                this.dataList.addAll(dataList);
-                notifyDataSetChanged();
+        public void setData(List<String> newData) {
+            this.dataList.clear();
+            if (newData != null) {
+                this.dataList.addAll(newData);
             }
+            notifyDataSetChanged();
         }
 
         @Override
@@ -209,7 +213,7 @@ public class QuickStartAppView extends LinearLayout {
         }
 
         class RecyclerHolder extends RecyclerView.ViewHolder {
-            ImageView imageView;
+            final ImageView imageView;
 
             private RecyclerHolder(View itemView) {
                 super(itemView);

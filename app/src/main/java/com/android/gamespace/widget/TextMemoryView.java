@@ -27,26 +27,29 @@ import com.android.gamespace.R;
 
 public class TextMemoryView extends TextView {
 
-    private ActivityManager mActivityManager;
-    private Handler mHandler;
-    private MemInfoWorker mWorker;
+    private static final long POLL_INTERVAL_MS = 3000L;
+
+    private final ActivityManager mActivityManager;
+    private final ActivityManager.MemoryInfo mMemoryInfo = new ActivityManager.MemoryInfo();
+    private final Handler mHandler;
+    private final MemInfoWorker mWorker;
+    private final String mPrefix;
+    private int mLastPercentage = -1;
 
     public TextMemoryView(Context context, AttributeSet attrs) {
         super(context, attrs);
-
         mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         mHandler = new Handler(Looper.getMainLooper());
         mWorker = new MemInfoWorker();
+        mPrefix = context.getString(R.string.ram_usage) + " ";
     }
 
     @Override
     public void setVisibility(int visibility) {
         super.setVisibility(visibility);
-
-        if (visibility == VISIBLE) {
+        mHandler.removeCallbacks(mWorker);
+        if (visibility == VISIBLE && isAttachedToWindow()) {
             mHandler.post(mWorker);
-        } else {
-            mHandler.removeCallbacks(mWorker);
         }
     }
 
@@ -58,21 +61,24 @@ public class TextMemoryView extends TextView {
 
     @Override
     public void onDetachedFromWindow() {
-        setVisibility(GONE);
+        mHandler.removeCallbacks(mWorker);
         super.onDetachedFromWindow();
     }
 
     private class MemInfoWorker implements Runnable {
         @Override
         public void run() {
-            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-            mActivityManager.getMemoryInfo(memoryInfo);
-            long usedMemory = memoryInfo.totalMem - memoryInfo.availMem;
-            int usedMemoryPercentage = (int) ((usedMemory * 100) / memoryInfo.totalMem);
-            String ramUsage = getContext().getString(R.string.ram_usage) + " " + usedMemoryPercentage + "%";
-            setText(ramUsage);
-            mHandler.postDelayed(this, 1000);
+            if (!isAttachedToWindow() || getVisibility() != VISIBLE) return;
+            mActivityManager.getMemoryInfo(mMemoryInfo);
+            if (mMemoryInfo.totalMem > 0) {
+                long usedMemory = mMemoryInfo.totalMem - mMemoryInfo.availMem;
+                int usedMemoryPercentage = (int) ((usedMemory * 100L) / mMemoryInfo.totalMem);
+                if (usedMemoryPercentage != mLastPercentage) {
+                    mLastPercentage = usedMemoryPercentage;
+                    setText(mPrefix + usedMemoryPercentage + "%");
+                }
+            }
+            mHandler.postDelayed(this, POLL_INTERVAL_MS);
         }
     }
 }
-

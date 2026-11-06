@@ -25,7 +25,11 @@ import android.service.notification.StatusBarNotification
 
 class DanmakuServiceListener : NotificationListenerService() {
 
-    private val postedNotifications = mutableMapOf<String, Long>()
+    private val postedNotifications = object : LinkedHashMap<String, Long>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean {
+            return size > NOTIFICATIONS_MAX_CACHED
+        }
+    }
 
     private val appLabelsCache = mutableMapOf<String, String?>()
 

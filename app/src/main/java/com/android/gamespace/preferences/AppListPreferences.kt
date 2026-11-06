@@ -74,14 +74,13 @@ class AppListPreferences @JvmOverloads constructor(context: Context, attrs: Attr
         }
         removeAll()
         addPreference(makeAddPref)
-        apps.filter { getAppInfo(it.packageName) != null }
-            .map {
-                val info = getAppInfo(it.packageName)
+        apps.mapNotNull { game ->
+                val info = getAppInfo(game.packageName) ?: return@mapNotNull null
                 Preference(context).apply {
-                    key = it.packageName
-                    title = info?.loadLabel(context.packageManager)
-                    summary = context.describeGameMode(it.mode)
-                    icon = info?.loadIcon(context.packageManager)
+                    key = game.packageName
+                    title = info.loadLabel(context.packageManager)
+                    summary = context.describeGameMode(game.mode)
+                    icon = info.loadIcon(context.packageManager)
                     layoutResource = R.layout.library_item
                     isPersistent = false
                     onPreferenceClickListener = this@AppListPreferences

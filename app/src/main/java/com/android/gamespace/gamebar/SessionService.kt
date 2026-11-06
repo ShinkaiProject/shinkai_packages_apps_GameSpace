@@ -35,10 +35,10 @@ import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
-import com.android.gamespace.utils.isServiceRunning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,7 +62,7 @@ class SessionService : Hilt_SessionService() {
     @Inject
     lateinit var callListener: CallListener
 
-    private val scope = CoroutineScope(Job() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isRunning = false
     
     private var tarketPkgName = ""
@@ -92,6 +92,7 @@ class SessionService : Hilt_SessionService() {
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        serviceRunning = true
         try {
             screenUtils.bind()
         } catch (e: RemoteException) {
@@ -148,8 +149,10 @@ class SessionService : Hilt_SessionService() {
         gameModeUtils.unbind()
         screenUtils.unbind()
         callListener.destroy()
+        scope.cancel()
 
         isRunning = false
+        serviceRunning = false
         super.onDestroy()
     }
 
@@ -259,17 +262,22 @@ class SessionService : Hilt_SessionService() {
         const val STOP = "game_stop"
         const val EXTRA_PACKAGE_NAME = "package_name"
 
+        @Volatile
+        private var serviceRunning = false
+
         fun start(context: Context, app: String) = Intent(context, SessionService::class.java)
             .apply {
                 action = START
                 putExtra(EXTRA_PACKAGE_NAME, app)
             }
-            .takeIf { !context.isServiceRunning(SessionService::class.java) }
+            .takeIf { !serviceRunning }
             ?.run { context.startServiceAsUser(this, UserHandle.CURRENT) }
 
-        fun stop(context: Context) = Intent(context, SessionService::class.java)
-            .apply { action = STOP }
-            .takeIf { context.isServiceRunning(SessionService::class.java) }
-            ?.run { context.stopServiceAsUser(this, UserHandle.CURRENT) }
+        fun stop(context: Context) {
+            if (!serviceRunning) return
+            Intent(context, SessionService::class.java)
+                .apply { action = STOP }
+                .run { context.stopServiceAsUser(this, UserHandle.CURRENT) }
+        }
     }
 }

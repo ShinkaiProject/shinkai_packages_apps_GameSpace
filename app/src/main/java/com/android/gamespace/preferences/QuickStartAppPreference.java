@@ -23,6 +23,7 @@ import android.util.AttributeSet;
 import androidx.preference.DialogPreference;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class QuickStartAppPreference extends DialogPreference {
@@ -31,61 +32,61 @@ public class QuickStartAppPreference extends DialogPreference {
     private String[] appNames;
     private Drawable[] appIcons;
 
+    private static class AppEntry {
+        final String packageName;
+        final String name;
+        final Drawable icon;
+
+        AppEntry(String packageName, String name, Drawable icon) {
+            this.packageName = packageName;
+            this.name = name;
+            this.icon = icon;
+        }
+    }
+
     public QuickStartAppPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
-        loadInstalledUserApps(context);
     }
 
-    private void loadInstalledUserApps(Context context) {
-        PackageManager pm = context.getPackageManager();
-        List<ApplicationInfo> apps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        List<String> packageNames = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        List<Drawable> icons = new ArrayList<>();
+    private synchronized void ensureAppsLoaded() {
+        if (appPackageNames != null) return;
+        PackageManager pm = getContext().getPackageManager();
+        List<ApplicationInfo> apps = pm.getInstalledApplications(0);
+        List<AppEntry> entries = new ArrayList<>();
         for (ApplicationInfo app : apps) {
             if ((app.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-                packageNames.add(app.packageName);
-                names.add(pm.getApplicationLabel(app).toString());
-                icons.add(pm.getApplicationIcon(app));
+                entries.add(new AppEntry(
+                        app.packageName,
+                        pm.getApplicationLabel(app).toString(),
+                        pm.getApplicationIcon(app)
+                ));
             }
         }
-        appPackageNames = packageNames.toArray(new String[0]);
-        appNames = names.toArray(new String[0]);
-        appIcons = icons.toArray(new Drawable[0]);
-        sortAppsAlphabetically();
-    }
-
-    private void sortAppsAlphabetically() {
-        for (int i = 0; i < appNames.length - 1; i++) {
-            for (int j = i + 1; j < appNames.length; j++) {
-                if (appNames[i].compareToIgnoreCase(appNames[j]) > 0) {
-                    swapApps(i, j);
-                }
-            }
+        entries.sort(Comparator.comparing(e -> e.name, String.CASE_INSENSITIVE_ORDER));
+        int size = entries.size();
+        appPackageNames = new String[size];
+        appNames = new String[size];
+        appIcons = new Drawable[size];
+        for (int i = 0; i < size; i++) {
+            AppEntry entry = entries.get(i);
+            appPackageNames[i] = entry.packageName;
+            appNames[i] = entry.name;
+            appIcons[i] = entry.icon;
         }
-    }
-
-    private void swapApps(int i, int j) {
-        String tempName = appNames[i];
-        Drawable tempIcon = appIcons[i];
-        String tempPackage = appPackageNames[i];
-        appNames[i] = appNames[j];
-        appIcons[i] = appIcons[j];
-        appPackageNames[i] = appPackageNames[j];
-        appNames[j] = tempName;
-        appIcons[j] = tempIcon;
-        appPackageNames[j] = tempPackage;
     }
 
     public String[] getAppPackageNames() {
+        ensureAppsLoaded();
         return appPackageNames;
     }
 
     public String[] getAppNames() {
+        ensureAppsLoaded();
         return appNames;
     }
 
     public Drawable[] getAppIcons() {
+        ensureAppsLoaded();
         return appIcons;
     }
 

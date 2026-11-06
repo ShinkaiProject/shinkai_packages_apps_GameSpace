@@ -15,8 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.math.RoundingMode
-import java.text.DecimalFormat
+import kotlin.math.roundToInt
 
 class MenuSwitcher @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -76,10 +75,13 @@ class MenuSwitcher @JvmOverloads constructor(
         updateFrameRateBinding()
     }
 
+    private var lastDisplayedFps = -1
+
     private fun onFrameUpdated(newValue: Float) = scope.launch {
-        DecimalFormat("#").apply {
-            roundingMode = RoundingMode.HALF_EVEN
-            content?.text = this.format(newValue)
+        val rounded = newValue.roundToInt()
+        if (rounded != lastDisplayedFps) {
+            lastDisplayedFps = rounded
+            content?.text = rounded.toString()
         }
     }
 

@@ -11,7 +11,7 @@
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
-    limitations under the License.
+     limitations under the License.
   -->
 
 <resources>
@@ -56,13 +56,6 @@
         <item>0.50</item>
     </string-array>
 
-    <string-array name="notification_mode_entries" translatable="false">
-        <item>@string/notification_mode_hide</item>
-        <item>@string/notification_mode_headsup</item>
-        <item>@string/notification_mode_reticker</item>
-        <item>@string/notification_mode_danmaku</item>
-    </string-array>
-
     <string-array name="in_game_calls_entries" translatable="false">
         <item>@string/in_game_calls_no_action</item>
         <item>@string/in_game_calls_auto_answer</item>
@@ -73,12 +66,5 @@
         <item>0</item>
         <item>1</item>
         <item>2</item>
-    </string-array>
-
-    <string-array name="notification_mode_values" translatable="false">
-        <item>0</item>
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
     </string-array>
 </resources>

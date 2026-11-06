@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# Keep custom Views and Preferences referenced in XML
+-keep class com.android.gamespace.widget.** { *; }
+-keep class com.android.gamespace.preferences.** { *; }
+-keep class com.crdroid.settings.preferences.** { *; }
+-keep class com.android.gamespace.data.** { *; }

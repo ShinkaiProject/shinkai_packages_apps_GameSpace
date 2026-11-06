@@ -46,17 +46,21 @@ class NowPlayingController(private val context: Context, private val root: View)
 
     private val progressRunnable = object : Runnable {
         override fun run() {
-            activeController?.let { controller ->
-                val state = controller.playbackState
+            val controller = activeController
+            val state = controller?.playbackState
+            val isPlaying = state?.state == PlaybackState.STATE_PLAYING
+            val mediaVisible = seekbar.isShown
+            squigglyDrawable.setVisible(mediaVisible, false)
+            if (controller != null) {
                 val position = state?.position ?: 0L
                 val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 1L
-                
                 seekbar.progress = position.toInt()
-                
                 squigglyDrawable.progress = if (duration > 0) position.toFloat() / duration.toFloat() else 0f
-                squigglyDrawable.animateWave = state?.state == PlaybackState.STATE_PLAYING
+                squigglyDrawable.animateWave = isPlaying
+            } else {
+                squigglyDrawable.animateWave = false
             }
-            handler.postDelayed(this, 500L)
+            handler.postDelayed(this, if (isPlaying && mediaVisible) 500L else 1200L)
         }
     }
 

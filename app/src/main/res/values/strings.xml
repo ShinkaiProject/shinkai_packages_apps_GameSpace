@@ -20,21 +20,16 @@
     <string name="quick_start_apps_title">Quick Start Apps</string>
     <string name="quick_start_apps_summary">Select apps to launch quickly</string>
     <string name="settings_title">Game Space</string>
-    <string name="settings_summary">Manage your gaming setup</string>
     <string name="app_selector_label">Pick your game</string>
     <string name="auto_brightness_disabled_title">Disable auto-brightness</string>
     <string name="auto_brightness_disabled_summary">Keep brightness settled while in-game</string>
-    <string name="heads_up_disabled_summary">Disable Notification heads-up while in-game</string>
     <string name="in_game_preferences_title">In-game options</string>
     <string name="game_list_title">Library</string>
-    <string name="game_remove_message">Are you sure you want to remove %1$s from your library ?</string>
     <string name="app_search_title">Search</string>
     <string name="three_screenshot_disabled_summary">Temporary disable three-fingers-swipe gesture while in-game</string>
     <string name="three_screenshot_disabled_title">Disable three fingers swipe gesture</string>
-    <string name="chaldea">chaldeaprjkt</string>
     <string name="state_enabled">Enabled</string>
     <string name="state_disabled">Disabled</string>
-    <string name="state_default">Default</string>
     <!-- Game Mode Name - sorted by GameManager's enum, do not modify the sequence! -->
     <string name="game_mode_title">Mode</string>
     <string-array name="game_mode_names">
@@ -177,25 +172,13 @@
 
     <string name="per_app_unregister">Remove %1$s from library</string>
 
-    <string name="adb_disabled_summary">Temporary disable USB ADB debugging while in-game</string>
-    <string name="adb_disabled_title">Disable USB debugging</string>
 
-    <string name="date_format" translatable="false">EEEE, MMM d</string>
 
     <string name="battery_format" translatable="false"><xliff:g id="percentage" example="100">%1$d%%</xliff:g></string>
     <string name="ram_usage">RAM usage: </string>
 
     <!-- Notification Mode -->
-    <string name="notification_mode_title">Notification mode</string>
-    <string name="notification_mode_hide">Do not show</string>
-    <string name="notification_mode_headsup">Show as heads up</string>
-    <string name="notification_mode_reticker">Show as reTicker</string>
-    <string name="notification_mode_danmaku">Show as Danmaku</string>
 
-    <string name="notification_hide">Hide</string>
-    <string name="notification_headsup">Heads Up</string>
-    <string name="notification_reticker">reTicker</string>
-    <string name="notification_danmaku">Danmaku</string>
     
     <!-- Ringer Mode -->
     <string name="in_game_calls_title">In-game call</string>
@@ -210,10 +193,6 @@
     <string name="danmaku_notification_mode_summary">Show notification as danmaku aka bullet comments while game is active</string>
     
     <!-- Custom seekbar -->
-    <string name="custom_seekbar_value">Value: <xliff:g id="v">%s</xliff:g></string>
-    <string name="custom_seekbar_default_value">by default</string>
-    <string name="custom_seekbar_default_value_to_set">Default value: <xliff:g id="v">%s</xliff:g>\nLong tap to set</string>
-    <string name="custom_seekbar_default_value_is_set">Default value is set</string>
     <string name="gamespace_menu_opacity_title">Overlay menu opacity level</string>
     
     <!-- Auto DND -->
@@ -247,5 +226,4 @@
     <string name="gamespace_bar_auto_hide_summary">Fade the toolbar to nearly invisible when not in use</string>
     <string name="gamespace_bar_auto_hide_delay_title">Hide after</string>
     <string name="gamespace_bar_auto_hide_delay_value">Hide after: %d s</string>
-    <string name="gamespace_bar_auto_hide_delay_summary">Toolbar fades after this many seconds of inactivity</string>
 </resources>

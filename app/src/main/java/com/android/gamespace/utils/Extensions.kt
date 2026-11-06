@@ -16,9 +16,6 @@
  */
 package com.android.gamespace.utils
 
-import android.app.Activity
-import android.app.ActivityManager
-import android.app.Service
 import android.content.Context
 import android.content.res.Resources.getSystem
 import android.graphics.Point
@@ -47,9 +44,3 @@ fun WindowManager.isPortrait() =
 
 inline fun <reified T : Any> Context.entryPointOf(): T =
     EntryPoints.get(applicationContext, T::class.java)
-
-@Suppress("DEPRECATION") // Deprecated for third party services.
-fun Context.isServiceRunning(serviceClass: Class<*>): Boolean =
-    (getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager)
-        .getRunningServices(Integer.MAX_VALUE)
-        .any { it.service.className == serviceClass.name }

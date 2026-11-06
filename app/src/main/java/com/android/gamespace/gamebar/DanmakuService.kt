@@ -188,9 +188,9 @@ class DanmakuService @Inject constructor(
         get() = appSettings.danmakuNotification
 
     private fun pushNotification() {
-        val end = getOffsetForPosition().toFloat()
-        val start = end * (1 - SLIDE_ANIMATION_DISTANCE_FACTOR)
-        overlayPositionAnimator = getPositionAnimator(APPEAR_ANIMATION_DURATION, start, end).also {
+        val offset = getOffsetForPosition().toFloat()
+        val slideDelta = offset * SLIDE_ANIMATION_DISTANCE_FACTOR
+        overlayPositionAnimator = getPositionAnimator(APPEAR_ANIMATION_DURATION, -slideDelta, 0f).also {
             it.addListener(onEnd = {
                 handler.postDelayed({
                     popNotification()
@@ -202,15 +202,16 @@ class DanmakuService @Inject constructor(
     }
 
     private fun popNotification() {
-        val start = getOffsetForPosition().toFloat()
-        val end = start * (1 + SLIDE_ANIMATION_DISTANCE_FACTOR)
+        val offset = getOffsetForPosition().toFloat()
+        val slideDelta = offset * SLIDE_ANIMATION_DISTANCE_FACTOR
         overlayPositionAnimator =
-            getPositionAnimator(DISAPPEAR_ANIMATION_DURATION, start, end).also {
+            getPositionAnimator(DISAPPEAR_ANIMATION_DURATION, 0f, slideDelta).also {
                 it.addListener(onEnd = {
                     if (notificationStack.isEmpty()) {
                         removeViewSafely()
                     } else {
                         notificationOverlay.alpha = 0f
+                        notificationOverlay.translationY = 0f
                         notificationOverlay.text = notificationStack.pop()
                         pushNotification()
                     }
@@ -221,12 +222,10 @@ class DanmakuService @Inject constructor(
     }
 
     private fun getPositionAnimator(duration: Long, vararg values: Float): ValueAnimator {
-        val lpCopy = LayoutParams().also { it.copyFrom(layoutParams) }
         return ValueAnimator.ofFloat(*values).apply {
             this.duration = duration
             addUpdateListener {
-                lpCopy.y = (it.animatedValue as Float).toInt()
-                updateViewLayoutSafely(lpCopy)
+                notificationOverlay.translationY = it.animatedValue as Float
             }
         }
     }
