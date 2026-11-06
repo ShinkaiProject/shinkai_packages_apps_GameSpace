@@ -21,9 +21,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 
-import java.util.*
-
-import kotlin.concurrent.timerTask
 import kotlin.math.hypot
 
 class DraggableTouchListener(
@@ -42,30 +39,27 @@ class DraggableTouchListener(
     private var initialY = 0
     private var moving = false
     private var longClickPerformed = false
-    private var timer: Timer? = null
+
+    // Runs on the main thread, and there is nothing to start for it: a Timer would be a new
+    // thread for every touch on the bar.
+    private val longClickRunnable = Runnable {
+        if (!moving && !longClickPerformed) {
+            longClickPerformed = true
+            view.performLongClick()
+        }
+    }
 
     init {
         view.setOnTouchListener(this)
     }
 
     private fun scheduleLongClickTimer() {
-        if (timer == null) {
-            timer = Timer()
-            timer?.schedule(timerTask {
-                if (!moving && !longClickPerformed) {
-                    view.post {
-                        view.performLongClick()
-                    }
-                    longClickPerformed = true
-                }
-                cancelLongClickTimer()
-            }, longClickInterval.toLong())
-        }
+        view.removeCallbacks(longClickRunnable)
+        view.postDelayed(longClickRunnable, longClickInterval.toLong())
     }
 
     private fun cancelLongClickTimer() {
-        timer?.cancel()
-        timer = null
+        view.removeCallbacks(longClickRunnable)
     }
 
     override fun onTouch(view: View, motionEvent: MotionEvent): Boolean {
@@ -92,6 +86,7 @@ class DraggableTouchListener(
                     }
                 }
             }
+            MotionEvent.ACTION_CANCEL -> cancelLongClickTimer()
             MotionEvent.ACTION_UP -> {
                 cancelLongClickTimer()
                 if (!moving && !longClickPerformed) {

@@ -25,7 +25,14 @@ import android.service.notification.StatusBarNotification
 
 class DanmakuServiceListener : NotificationListenerService() {
 
-    private val postedNotifications = mutableMapOf<String, Long>()
+    /**
+     * Texts of the notifications on show, to not repeat one that is posted again. Bounded: a long
+     * session with a busy chat app would otherwise keep every text it ever saw.
+     */
+    private val postedNotifications = object : LinkedHashMap<String, Long>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?) =
+            size > NOTIFICATIONS_MAX_CACHED
+    }
 
     private val appLabelsCache = mutableMapOf<String, String?>()
 

@@ -36,23 +36,29 @@ class BatteryView @JvmOverloads constructor(
     defStyleRes: Int = 0,
 ) : TextView(context, attrs, defStyleAttr, defStyleRes) {
 
+    private var shownPercent = -1
+
     private val batteryChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_BATTERY_CHANGED) {
                 val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0)
                 val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0)
-                val percent = (level.toFloat() / scale * 100).toInt()
-                text = context.getString(R.string.battery_format, percent)
+                if (scale <= 0) return
+                showPercent((level.toFloat() / scale * 100).toInt())
             }
         }
     }
 
     init {
         val batteryManager = context.getSystemService(BatteryManager::class.java)!!
-        text = context.getString(
-            R.string.battery_format,
-            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        )
+        showPercent(batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY))
+    }
+
+    /** The broadcast also comes for a change of voltage or temperature, with the same level. */
+    private fun showPercent(percent: Int) {
+        if (percent == shownPercent) return
+        shownPercent = percent
+        text = context.getString(R.string.battery_format, percent)
     }
 
     override fun onAttachedToWindow() {

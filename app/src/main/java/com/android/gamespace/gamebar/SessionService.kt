@@ -35,7 +35,6 @@ import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
-import com.android.gamespace.utils.isServiceRunning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -92,6 +91,7 @@ class SessionService : Hilt_SessionService() {
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        alive = true
         try {
             screenUtils.bind()
         } catch (e: RemoteException) {
@@ -150,6 +150,7 @@ class SessionService : Hilt_SessionService() {
         callListener.destroy()
 
         isRunning = false
+        alive = false
         super.onDestroy()
     }
 
@@ -259,17 +260,32 @@ class SessionService : Hilt_SessionService() {
         const val STOP = "game_stop"
         const val EXTRA_PACKAGE_NAME = "package_name"
 
+        /**
+         * Whether the service exists. It is only ever in this process, so it can be kept here:
+         * asking the activity manager for the list of all running services, which is what this
+         * used to do, copies every service of the system through binder, at the start and the end
+         * of each game.
+         */
+        @Volatile
+        private var alive = false
+
         fun start(context: Context, app: String) = Intent(context, SessionService::class.java)
             .apply {
                 action = START
                 putExtra(EXTRA_PACKAGE_NAME, app)
             }
-            .takeIf { !context.isServiceRunning(SessionService::class.java) }
+            .takeIf { !alive }
             ?.run { context.startServiceAsUser(this, UserHandle.CURRENT) }
 
         fun stop(context: Context) = Intent(context, SessionService::class.java)
             .apply { action = STOP }
-            .takeIf { context.isServiceRunning(SessionService::class.java) }
-            ?.run { context.stopServiceAsUser(this, UserHandle.CURRENT) }
+            .run {
+                // The system forgets a service the moment it is asked to stop it, and onDestroy
+                // only follows later. Without this, a game that starts right after another one
+                // has stopped could still find the old service "alive" and not start a new one.
+                // Stopping one that is not running does nothing, so there is nothing to check.
+                alive = false
+                context.stopServiceAsUser(this, UserHandle.CURRENT)
+            }
     }
 }
