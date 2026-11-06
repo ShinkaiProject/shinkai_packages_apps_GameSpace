@@ -11,6 +11,10 @@ import com.android.gamespace.utils.TaskFpsMonitor
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.entryPointOf
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.math.RoundingMode
 import java.text.DecimalFormat
 
@@ -26,6 +30,7 @@ class MenuSwitcher @JvmOverloads constructor(
         requireViewById<TextView>(R.id.menu_content).textColors
 
     private val appSettings by lazy { context.entryPointOf<ServiceViewEntryPoint>().appSettings() }
+    private val scope = CoroutineScope(Job() + Dispatchers.Main)
 
     // Shared with the FPS recorder: the system reports FPS to one listener per task only.
     private val fpsMonitor by lazy { context.entryPointOf<ServiceViewEntryPoint>().taskFpsMonitor() }
@@ -71,17 +76,11 @@ class MenuSwitcher @JvmOverloads constructor(
         updateFrameRateBinding()
     }
 
-    // One formatter for all the updates, which come in at least twice a second.
-    private val fpsFormat = DecimalFormat("#").apply { roundingMode = RoundingMode.HALF_EVEN }
-    private var shownFps: String? = null
-
-    private fun onFrameUpdated(newValue: Float) {
-        val text = fpsFormat.format(newValue)
-        // The width of the text is not fixed, so setting even the same text again would measure
-        // and lay out the bar again. FPS mostly stays on the same value for a while.
-        if (text == shownFps) return
-        shownFps = text
-        content?.text = text
+    private fun onFrameUpdated(newValue: Float) = scope.launch {
+        DecimalFormat("#").apply {
+            roundingMode = RoundingMode.HALF_EVEN
+            content?.text = this.format(newValue)
+        }
     }
 
     private fun updateFrameRateBinding() {
