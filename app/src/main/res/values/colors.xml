@@ -21,9 +21,6 @@
     <!-- Selected row in the FPS statistics list: secondary container -->
     <color name="sessionItemSelected">@android:color/system_accent2_100</color>
 
-    <!-- Round container behind a tile icon in the tile layout editor -->
-    <color name="tileIconContainer">@android:color/system_accent2_100</color>
-
     <!-- Popup menu: Monet surface container and on-surface colours -->
     <color name="popupMenuBackground">@android:color/system_neutral1_10</color>
     <color name="popupMenuOnSurface">@android:color/system_neutral1_900</color>

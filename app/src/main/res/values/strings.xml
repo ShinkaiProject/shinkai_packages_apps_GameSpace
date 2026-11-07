@@ -53,24 +53,9 @@
     <string name="fps_record_save_failed">Couldn\'t save the FPS log</string>
 
     <!-- FPS statistics -->
-    <string name="panel_category">Game panel</string>
-    <string name="tile_layout_title">Tile layout</string>
-    <string name="tile_layout_summary">Rearrange, add or remove the tiles in the game panel</string>
-    <string name="tile_layout_active_title">Tiles in the panel</string>
-    <string name="tile_layout_active_hint">Drag the handle to reorder, or tap a tile for more options. The panel shows 4 tiles per page.</string>
-    <string name="tile_layout_available_title">Available tiles</string>
-    <string name="tile_layout_available_hint">Tap a tile to add it to the end of the panel.</string>
-    <string name="tile_layout_page">Page <xliff:g id="page" example="2">%1$d</xliff:g></string>
     <string name="tile_layout_empty_active">No tiles in the panel</string>
     <string name="tile_layout_empty_available">All tiles are already in the panel</string>
-    <string name="tile_layout_move_front">Move to front</string>
-    <string name="tile_layout_move_up">Move up</string>
-    <string name="tile_layout_move_down">Move down</string>
-    <string name="tile_layout_remove">Remove from panel</string>
-    <string name="tile_layout_add">Add to panel</string>
-    <string name="tile_layout_drag">Reorder</string>
     <string name="tile_layout_reset">Reset to default</string>
-    <string name="tile_layout_reset_message">Restore the default tiles and their order?</string>
     <string name="panel_edit_enter">Edit tiles</string>
     <string name="panel_edit_done">Done</string>
     <string name="panel_edit_active">Active</string>

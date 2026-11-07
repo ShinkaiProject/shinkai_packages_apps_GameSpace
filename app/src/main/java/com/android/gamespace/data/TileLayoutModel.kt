@@ -1,19 +1,5 @@
 package com.android.gamespace.data
 
-/** Where a row sits in a group of rows that are drawn as one rounded block. */
-enum class GroupPosition {
-    SINGLE, TOP, MIDDLE, BOTTOM;
-
-    companion object {
-        fun of(index: Int, size: Int) = when {
-            size <= 1 -> SINGLE
-            index <= 0 -> TOP
-            index >= size - 1 -> BOTTOM
-            else -> MIDDLE
-        }
-    }
-}
-
 /**
  * The tiles of the game panel, in the order they are shown.
  *
