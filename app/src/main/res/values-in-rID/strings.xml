@@ -198,7 +198,6 @@
      <string name="private_dns_Strict">Host Kustom</string>
      <string name="flashlight_title">Senter</string>
      <string name="night_light_title">Cahaya Malam</string>
-     <string name="adaptive_brightness_title">Kecerahan Otomatis</string>
      <string name="auto_sync_title">Sinkron Otomatis</string>
      <string name="bypass_charge_tile_title">Bypass Charging</string>
 

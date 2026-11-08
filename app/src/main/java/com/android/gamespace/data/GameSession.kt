@@ -93,6 +93,24 @@ class GameSession @Inject constructor(
         state = null
     }
 
+    /**
+     * Turns Danmaku on or off while a game is running, from the panel. The heads-up notifications
+     * of the system follow it as they do at the start of a game: off while Danmaku is on, and
+     * back to what they were before the game when it is turned off. The end of the game only puts
+     * them back while Danmaku is on, so turning it off in the middle of a game would otherwise
+     * leave heads-up notifications off for good.
+     */
+    fun setDanmakuNotification(enabled: Boolean) {
+        if (appSettings.danmakuNotification == enabled) return
+        appSettings.danmakuNotification = enabled
+        val saved = state ?: return
+        if (enabled) {
+            systemSettings.headsup = false
+        } else {
+            saved.headsup?.let { systemSettings.headsup = it }
+        }
+    }
+
     fun finalize() {
         unregister()
     }

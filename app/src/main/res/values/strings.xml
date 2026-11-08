@@ -227,7 +227,6 @@
      <string name="private_dns_Strict">Custom Host</string>
      <string name="flashlight_title">Flashlight</string>
      <string name="night_light_title">Night Light</string>
-     <string name="adaptive_brightness_title">Auto Brightness</string>
      <string name="auto_sync_title">Auto-sync</string>
      <string name="bypass_charge_tile_title">Bypass Charge</string>
 

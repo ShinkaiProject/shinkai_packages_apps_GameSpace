@@ -28,9 +28,9 @@ enum class TileType(
     PRIVATE_DNS("private_dns", R.string.private_dns_title, R.drawable.ic_dns, { PrivateDnsTile(it) }),
     FLASHLIGHT("flashlight", R.string.flashlight_title, R.drawable.ic_flashlight, { FlashlightTile(it) }),
     NIGHT_LIGHT("night_light", R.string.night_light_title, R.drawable.ic_night_light, { NightLightTile(it) }),
-    ADAPTIVE_BRIGHTNESS("adaptive_brightness", R.string.adaptive_brightness_title, R.drawable.ic_adaptive_brightness, { AdaptiveBrightnessTile(it) }),
     AUTO_SYNC("auto_sync", R.string.auto_sync_title, R.drawable.ic_sync, { AutoSyncTile(it) }),
-    BYPASS_CHARGE("bypass_charge", R.string.bypass_charge_tile_title, R.drawable.ic_bypass_charge, { BypassChargeTile(it) });
+    BYPASS_CHARGE("bypass_charge", R.string.bypass_charge_tile_title, R.drawable.ic_bypass_charge, { BypassChargeTile(it) }),
+    DANMAKU("danmaku", R.string.notification_danmaku, R.drawable.ic_danmaku, { DanmakuTile(it) });
 
     companion object {
         fun fromId(id: String) = entries.find { it.id == id }
