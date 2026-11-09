@@ -129,6 +129,21 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="display_category"
+        android:title="@string/display_category">
+
+        <Preference
+            android:key="display_enhancer"
+            android:summary="@string/display_enhancer_summary"
+            android:title="@string/display_enhancer_title">
+            <intent
+                android:targetClass="com.android.gamespace.display.DisplayEnhancerActivity"
+                android:targetPackage="com.android.gamespace" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="quick_start_category"
         android:title="@string/category_quick_start">
 

@@ -92,6 +92,12 @@
             android:exported="false"
             android:label="@string/fps_statistics_title" />
 
+        <activity
+            android:name=".display.DisplayEnhancerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/display_enhancer_title" />
+
         <!-- Hands the CSV of a recorded FPS session to the share sheet -->
         <provider
             android:name="androidx.core.content.FileProvider"

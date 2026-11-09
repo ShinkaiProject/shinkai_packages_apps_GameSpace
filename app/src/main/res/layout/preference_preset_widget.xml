@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/preset_edit"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/display_preset_edit"
+        android:padding="12dp"
+        android:src="@drawable/ic_edit_preset"
+        android:tint="?android:attr/colorControlNormal"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/preset_check"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="4dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_check"
+        android:tint="?android:attr/colorAccent"
+        android:visibility="invisible" />
+
+</LinearLayout>

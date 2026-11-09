@@ -245,4 +245,33 @@
     <string name="gamespace_bar_auto_hide_delay_title">Hide after</string>
     <string name="gamespace_bar_auto_hide_delay_value">Hide after: %d s</string>
     <string name="gamespace_bar_auto_hide_delay_summary">Toolbar fades after this many seconds of inactivity</string>
+
+    <!-- Game Display Enhanced -->
+    <string name="display_category">Display</string>
+    <string name="display_enhancer_title">Game Display Enhanced</string>
+    <string name="display_enhancer_summary">Colour presets for games: Vivid, Natural, Saturated, HDR and your own</string>
+    <string name="display_enhancer_tile_title">Game Display</string>
+    <string name="display_enhancer_note">The preset is put on the screen when a game starts and taken off when it ends. HDR is a look that imitates HDR; it does not turn HDR output on. Warmth waits while Night Light, colour inversion or Reduce Bright Colors is on; saturation always applies.</string>
+    <string name="display_presets_builtin">Built-in presets</string>
+    <string name="display_presets_custom">Custom presets</string>
+    <string name="display_preset_standard">Standard</string>
+    <string name="display_preset_vivid">Vivid</string>
+    <string name="display_preset_natural">Natural</string>
+    <string name="display_preset_saturated">Saturated</string>
+    <string name="display_preset_hdr">HDR</string>
+    <string name="display_preset_standard_summary">Device default, nothing changed</string>
+    <string name="display_preset_values">Saturation <xliff:g id="saturation">%1$d</xliff:g>%% · Warmth <xliff:g id="warmth">%2$s</xliff:g></string>
+    <string name="display_preset_create">Create preset</string>
+    <string name="display_preset_create_summary">Starts from the preset that is selected</string>
+    <string name="display_preset_new">New preset</string>
+    <string name="display_preset_edit">Edit preset</string>
+    <string name="display_preset_name_hint">Preset name</string>
+    <string name="display_preset_default_name">Custom <xliff:g id="number">%1$d</xliff:g></string>
+    <string name="display_preset_save">Save</string>
+    <string name="display_preset_delete">Delete</string>
+    <string name="display_preset_delete_message">Delete the preset \"<xliff:g id="name">%1$s</xliff:g>\"?</string>
+    <string name="display_preset_limit">Up to <xliff:g id="max">%1$d</xliff:g> custom presets</string>
+    <string name="display_saturation">Saturation</string>
+    <string name="display_warmth">Warmth</string>
+    <string name="display_value_percent"><xliff:g id="value">%1$d</xliff:g>%%</string>
 </resources>

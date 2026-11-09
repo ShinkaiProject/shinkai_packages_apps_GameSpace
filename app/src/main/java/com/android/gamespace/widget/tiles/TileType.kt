@@ -27,6 +27,7 @@ enum class TileType(
     LOCATION("location", R.string.location_title, R.drawable.ic_location, { LocationTile(it) }),
     PRIVATE_DNS("private_dns", R.string.private_dns_title, R.drawable.ic_dns, { PrivateDnsTile(it) }),
     FLASHLIGHT("flashlight", R.string.flashlight_title, R.drawable.ic_flashlight, { FlashlightTile(it) }),
+    DISPLAY_ENHANCER("display_enhancer", R.string.display_enhancer_tile_title, R.drawable.ic_display_enhanced, { DisplayEnhancerTile(it) }),
     NIGHT_LIGHT("night_light", R.string.night_light_title, R.drawable.ic_night_light, { NightLightTile(it) }),
     AUTO_SYNC("auto_sync", R.string.auto_sync_title, R.drawable.ic_sync, { AutoSyncTile(it) }),
     BYPASS_CHARGE("bypass_charge", R.string.bypass_charge_tile_title, R.drawable.ic_bypass_charge, { BypassChargeTile(it) }),

@@ -101,6 +101,16 @@ class AppSettings @Inject constructor(private val context: Context) {
         get() = db.getString(KEY_SELECTED_TILES, DEFAULT_TILES)!!.split(",")
         set(value) = db.edit().putString(KEY_SELECTED_TILES, value.joinToString(",")).apply()
 
+    /** The Game Display Enhanced preset that games start with. */
+    var displayPresetId: String
+        get() = db.getString(KEY_DISPLAY_PRESET, DEFAULT_DISPLAY_PRESET) ?: DEFAULT_DISPLAY_PRESET
+        set(value) = db.edit().putString(KEY_DISPLAY_PRESET, value).apply()
+
+    /** The custom presets in the format of DisplayPresetCodec. */
+    var displayCustomPresets: String
+        get() = db.getString(KEY_DISPLAY_CUSTOM_PRESETS, "") ?: ""
+        set(value) = db.edit().putString(KEY_DISPLAY_CUSTOM_PRESETS, value).apply()
+
     companion object {
         const val KEY_AUTO_BRIGHTNESS_DISABLE = "gamespace_auto_brightness_disabled"
         const val KEY_3SCREENSHOT_DISABLE = "gamespace_tfgesture_disabled"
@@ -116,5 +126,8 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val DEFAULT_BAR_AUTO_HIDE_DELAY_SEC = 5
         const val KEY_SELECTED_TILES = "gamespace_selected_tiles"
         const val DEFAULT_TILES = "game_mode,fps_info,fps_record,stay_awake,lock_gesture,wifi,dnd,mobile_data,airplane_mode"
+        const val KEY_DISPLAY_PRESET = "gamespace_display_preset"
+        const val KEY_DISPLAY_CUSTOM_PRESETS = "gamespace_display_custom_presets"
+        const val DEFAULT_DISPLAY_PRESET = "standard"
     }
 }

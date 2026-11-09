@@ -33,6 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.display.DisplayEnhancer
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
 import kotlinx.coroutines.CoroutineScope
@@ -60,6 +61,9 @@ class SessionService : Hilt_SessionService() {
 
     @Inject
     lateinit var callListener: CallListener
+
+    @Inject
+    lateinit var displayEnhancer: DisplayEnhancer
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
     private var isRunning = false
@@ -144,6 +148,7 @@ class SessionService : Hilt_SessionService() {
         }
 
         restoreAutoDnd()
+        displayEnhancer.stopSession()
         session.unregister()
         gameModeUtils.unbind()
         screenUtils.unbind()
@@ -192,6 +197,7 @@ class SessionService : Hilt_SessionService() {
                 session.register(app)
                 applyGameModeConfig(app)
                 applyAutoDnd()
+                displayEnhancer.startSession()
                 gameBar.onGameStart()
                 screenUtils.stayAwake = appSettings.stayAwake
                 screenUtils.lockGesture = appSettings.lockGesture

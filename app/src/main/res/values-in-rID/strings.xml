@@ -221,4 +221,33 @@
     <string name="category_quick_start">Mulai Cepat</string>
     <string name="quick_start_apps_title">Mulai Cepat Aplikasi</string>
     <string name="quick_start_apps_summary">Pilih aplikasi yang ingin diluncurkan dengan cepat</string>
+
+    <!-- Game Display Enhanced -->
+    <string name="display_category">Tampilan</string>
+    <string name="display_enhancer_title">Game Display Enhanced</string>
+    <string name="display_enhancer_summary">Preset warna untuk game: Vivid, Natural, Saturated, HDR, dan buatanmu sendiri</string>
+    <string name="display_enhancer_tile_title">Game Display</string>
+    <string name="display_enhancer_note">Preset dipasang ke layar saat game dimulai dan dilepas saat game selesai. HDR adalah tampilan yang meniru HDR, bukan mengaktifkan output HDR. Kehangatan menunggu selama Cahaya Malam, inversi warna, atau Peredupan Warna Cerah aktif; saturasi selalu berlaku.</string>
+    <string name="display_presets_builtin">Preset bawaan</string>
+    <string name="display_presets_custom">Preset kustom</string>
+    <string name="display_preset_standard">Standar</string>
+    <string name="display_preset_vivid">Vivid</string>
+    <string name="display_preset_natural">Natural</string>
+    <string name="display_preset_saturated">Saturated</string>
+    <string name="display_preset_hdr">HDR</string>
+    <string name="display_preset_standard_summary">Bawaan perangkat, tidak ada yang diubah</string>
+    <string name="display_preset_values">Saturasi <xliff:g id="saturation">%1$d</xliff:g>%% · Kehangatan <xliff:g id="warmth">%2$s</xliff:g></string>
+    <string name="display_preset_create">Buat preset</string>
+    <string name="display_preset_create_summary">Mulai dari preset yang sedang dipilih</string>
+    <string name="display_preset_new">Preset baru</string>
+    <string name="display_preset_edit">Ubah preset</string>
+    <string name="display_preset_name_hint">Nama preset</string>
+    <string name="display_preset_default_name">Kustom <xliff:g id="number">%1$d</xliff:g></string>
+    <string name="display_preset_save">Simpan</string>
+    <string name="display_preset_delete">Hapus</string>
+    <string name="display_preset_delete_message">Hapus preset \"<xliff:g id="name">%1$s</xliff:g>\"?</string>
+    <string name="display_preset_limit">Maksimal <xliff:g id="max">%1$d</xliff:g> preset kustom</string>
+    <string name="display_saturation">Saturasi</string>
+    <string name="display_warmth">Kehangatan</string>
+    <string name="display_value_percent"><xliff:g id="value">%1$d</xliff:g>%%</string>
 </resources>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The sliders of the Game Display Enhanced preset editor. The track is drawn by
+     PresetSliderDrawable; the handle is drawable/display_slider_handle. -->
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <dimen name="display_slider_track_height">16dp</dimen>
+    <dimen name="display_slider_handle_width">4dp</dimen>
+    <dimen name="display_slider_handle_height">44dp</dimen>
+    <!-- Between the handle and each side of the track. -->
+    <dimen name="display_slider_gap">4dp</dimen>
+    <!-- The ends of the track are round; the sides next to the handle only a little. -->
+    <dimen name="display_slider_corner">8dp</dimen>
+    <dimen name="display_slider_inner_corner">2dp</dimen>
+    <!-- The dot at the end of the track: its size, and how far its middle is from the end. -->
+    <dimen name="display_slider_stop_size">4dp</dimen>
+    <dimen name="display_slider_stop_inset">8dp</dimen>
+
+    <!-- The part of the track that is ahead of the handle (secondary container). -->
+    <color name="display_slider_inactive">@android:color/system_accent2_100</color>
+
+    <style name="Widget.GameSpace.PresetSlider" parent="@android:style/Widget.DeviceDefault.SeekBar">
+        <item name="android:thumb">@drawable/display_slider_handle</item>
+        <item name="android:thumbTint">@null</item>
+        <!-- Half the handle, so that it is not cut off at either end. -->
+        <item name="android:thumbOffset">2dp</item>
+        <item name="android:paddingStart">2dp</item>
+        <item name="android:paddingEnd">2dp</item>
+        <!-- The slider is as tall as the handle; the track is centred in it. -->
+        <item name="android:minHeight">@dimen/display_slider_handle_height</item>
+        <item name="android:maxHeight">@dimen/display_slider_track_height</item>
+        <item name="android:splitTrack">false</item>
+    </style>
+</resources>
