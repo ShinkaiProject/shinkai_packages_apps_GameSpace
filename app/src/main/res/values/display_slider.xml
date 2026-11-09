@@ -29,5 +29,9 @@
         <item name="android:minHeight">@dimen/display_slider_handle_height</item>
         <item name="android:maxHeight">@dimen/display_slider_track_height</item>
         <item name="android:splitTrack">false</item>
+        <!-- No touch effect: the platform style puts a ripple behind the handle that shows as a
+             grey circle while it is dragged. The handle is the only feedback. -->
+        <item name="android:background">@null</item>
+        <item name="android:foreground">@null</item>
     </style>
 </resources>
