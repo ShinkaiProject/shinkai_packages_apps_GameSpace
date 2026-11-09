@@ -114,8 +114,8 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:key="fps_statistics_category"
-        android:title="@string/fps_statistics_category">
+        android:key="other_feature_category"
+        android:title="@string/other_feature_category">
 
         <Preference
             android:key="fps_statistics"
@@ -126,12 +126,6 @@
                 android:targetPackage="com.android.gamespace" />
         </Preference>
 
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        android:key="display_category"
-        android:title="@string/display_category">
-
         <Preference
             android:key="display_enhancer"
             android:summary="@string/display_enhancer_summary"
@@ -140,12 +134,6 @@
                 android:targetClass="com.android.gamespace.display.DisplayEnhancerActivity"
                 android:targetPackage="com.android.gamespace" />
         </Preference>
-
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        android:key="quick_start_category"
-        android:title="@string/category_quick_start">
 
         <com.android.gamespace.preferences.QuickStartAppPreference
             android:key="quick_start_apps"

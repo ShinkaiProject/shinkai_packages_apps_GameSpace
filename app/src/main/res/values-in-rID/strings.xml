@@ -84,7 +84,6 @@
     <string name="panel_edit_active">Aktif</string>
     <string name="panel_edit_available">Tersedia</string>
     <string name="panel_edit_hint">Tahan dan seret untuk mengubah urutan. Ketuk untuk menambah atau menghapus.</string>
-    <string name="fps_statistics_category">Performa</string>
     <string name="fps_statistics_title">Statistik FPS</string>
     <string name="fps_statistics_summary">Lihat riwayat rekaman FPS</string>
     <string name="fps_stats_empty">Belum ada rekaman FPS.\nGunakan tile Rekam FPS di panel game.</string>
@@ -218,12 +217,10 @@
     <string name="gamespace_bar_auto_hide_delay_summary">Toolbar memudar setelah sekian detik tidak ada aktivitas.</string>
 
     <!-- Quick App Start -->
-    <string name="category_quick_start">Mulai Cepat</string>
     <string name="quick_start_apps_title">Mulai Cepat Aplikasi</string>
     <string name="quick_start_apps_summary">Pilih aplikasi yang ingin diluncurkan dengan cepat</string>
 
     <!-- Game Display Enhanced -->
-    <string name="display_category">Tampilan</string>
     <string name="display_enhancer_title">Game Display Enhanced</string>
     <string name="display_enhancer_summary">Preset warna untuk game: Vivid, Natural, Saturated, HDR, dan buatanmu sendiri</string>
     <string name="display_enhancer_tile_title">Game Display</string>
@@ -250,4 +247,7 @@
     <string name="display_saturation">Saturasi</string>
     <string name="display_warmth">Kehangatan</string>
     <string name="display_value_percent"><xliff:g id="value">%1$d</xliff:g>%%</string>
+
+    <!-- Other Features -->
+    <string name="other_feature_category">Fitur Lainnya</string>
 </resources>

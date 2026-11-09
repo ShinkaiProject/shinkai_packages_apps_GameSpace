@@ -16,7 +16,6 @@
   -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="category_quick_start">Quick Start</string>
     <string name="quick_start_apps_title">Quick Start Apps</string>
     <string name="quick_start_apps_summary">Select apps to launch quickly</string>
     <string name="settings_title">Game Space</string>
@@ -61,7 +60,6 @@
     <string name="panel_edit_active">Active</string>
     <string name="panel_edit_available">Available</string>
     <string name="panel_edit_hint">Hold and drag to reorder. Tap to add or remove.</string>
-    <string name="fps_statistics_category">Performance</string>
     <string name="fps_statistics_title">FPS statistics</string>
     <string name="fps_statistics_summary">View recorded FPS sessions</string>
     <string name="fps_stats_empty">No FPS recordings yet.\nUse the Record FPS tile in the game panel.</string>
@@ -247,7 +245,6 @@
     <string name="gamespace_bar_auto_hide_delay_summary">Toolbar fades after this many seconds of inactivity</string>
 
     <!-- Game Display Enhanced -->
-    <string name="display_category">Display</string>
     <string name="display_enhancer_title">Game Display Enhanced</string>
     <string name="display_enhancer_summary">Colour presets for games: Vivid, Natural, Saturated, HDR and your own</string>
     <string name="display_enhancer_tile_title">Game Display</string>
@@ -274,4 +271,7 @@
     <string name="display_saturation">Saturation</string>
     <string name="display_warmth">Warmth</string>
     <string name="display_value_percent"><xliff:g id="value">%1$d</xliff:g>%%</string>
+
+   <!-- Other Features -->
+   <string name="other_feature_category">Other Features</string>
 </resources>
