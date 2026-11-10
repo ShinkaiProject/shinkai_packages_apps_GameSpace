@@ -1,6 +1,7 @@
 package com.android.gamespace.display
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -23,6 +24,17 @@ class DisplayEnhancerFragment : SettingsBasePreferenceFragment() {
         screen = preferenceManager.createPreferenceScreen(requireContext())
         setPreferenceScreen(screen)
         rebuild()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // The note is a card of its own. Without this it sits right against the last custom preset.
+        listView.addItemDecoration(
+            GapBeforeDecoration(
+                NOTE_KEY,
+                requireContext().resources.getDimensionPixelSize(R.dimen.display_enhancer_note_gap)
+            )
+        )
     }
 
     override fun onStart() {
@@ -69,6 +81,7 @@ class DisplayEnhancerFragment : SettingsBasePreferenceFragment() {
         })
 
         screen.addPreference(Preference(context).apply {
+            key = NOTE_KEY
             isPersistent = false
             isSelectable = false
             isIconSpaceReserved = false
@@ -112,5 +125,10 @@ class DisplayEnhancerFragment : SettingsBasePreferenceFragment() {
             return
         }
         PresetEditor(requireContext(), enhancer, null, enhancer.active, ::rebuild).show()
+    }
+
+    private companion object {
+        /** Tells the list which row is the note, so that it can be given space above it. */
+        const val NOTE_KEY = "display_enhancer_note"
     }
 }
