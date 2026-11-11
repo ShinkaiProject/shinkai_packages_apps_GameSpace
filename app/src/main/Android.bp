@@ -6,9 +6,6 @@ android_app {
     manifest: "AndroidManifest.xml",
     certificate: "platform",
     resource_dirs: ["res"],
-    defaults: [
-        "SettingsLibDefaults",
-    ],
     srcs: [
         "java/**/*.java",
         "java/**/*.kt",
@@ -19,23 +16,31 @@ android_app {
     },
     static_libs: [
         "androidx.core_core-ktx",
-        "androidx.appcompat_appcompat",
+        "androidx.activity_activity-compose",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.ui_ui",
+        "androidx.compose.ui_ui-graphics",
+        "androidx.compose.material3_material3",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-runtime-compose",
+        "androidx.lifecycle_lifecycle-viewmodel-ktx",
+        "androidx.savedstate_savedstate-ktx",
         "androidx.preference_preference",
-        "androidx.recyclerview_recyclerview",
-        "androidx.viewpager2_viewpager2",
-        "com.google.android.material_material",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "gson",
         "hilt_android",
-        "custom-preference",
     ],
     kotlincflags: [
         "-opt-in=kotlin.Experimental",
         "-opt-in=kotlin.ExperimentalStdlibApi",
+        "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+        "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
     ],
     plugins: [
         "dagger2-compiler",
+        "androidx.compose.compiler_compiler-hosted",
     ],
 
     required: [
