@@ -15,11 +15,50 @@
   -->
 
 <resources>
-    <!-- Base window theme for Compose ComponentActivity edge-to-edge rendering -->
-    <style name="GameSpaceTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
-        <item name="android:windowActionBar">false</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+    <style name="GameSpaceTheme" parent="Theme.SubSettingsBase">
+        <item name="android:popupMenuStyle">@style/Widget.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
     </style>
+
+    <!-- Material 3 overflow menu: rounded tonal surface, level 2 elevation, Monet colours -->
+    <style name="Widget.GameSpace.PopupMenu" parent="@android:style/Widget.DeviceDefault.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:popupElevation">@dimen/popup_menu_elevation</item>
+    </style>
+
+    <!-- Applied on top of the activity theme by showMaterial3PopupMenu() -->
+    <style name="ThemeOverlay.GameSpace.PopupMenu" parent="">
+        <item name="android:popupMenuStyle">@style/Widget.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/TextAppearance.GameSpace.PopupMenu</item>
+        <item name="android:colorControlHighlight">@color/popup_menu_state_layer</item>
+    </style>
+
+    <style name="TextAppearance.GameSpace.PopupMenu" parent="@android:style/TextAppearance.DeviceDefault.Widget.PopupMenu.Large">
+        <item name="android:textColor">@color/popup_menu_text</item>
+        <item name="android:textSize">@dimen/popup_menu_text_size</item>
+    </style>
+
+    <style name="GameSpaceTheme.GameBar" parent="Theme.SubSettingsBase">
+        <item name="android:buttonStyle">@style/GameSpaceTheme.FlatButton</item>
+        <item name="android:imageButtonStyle">@style/GameSpaceTheme.FlatButton</item>
+    </style>
+
+    <style name="GameSpaceTheme.FlatButton" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/ripple_circle</item>
+        <item name="android:tint">@color/onBarBackground</item>
+    </style>
+
+    <style name="GameSpaceTheme.Panel" parent="GameSpaceTheme">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
+    </style>
+
+    <style name="GameSpaceTheme.Panel.Tile">
+        <item name="android:textColor">@color/tile_title_color</item>
+    </style>
+
 </resources>

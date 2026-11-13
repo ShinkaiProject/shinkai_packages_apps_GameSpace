@@ -20,59 +20,42 @@
 
 package com.android.gamespace.gamebar
 
+import android.animation.ValueAnimator
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.os.RemoteException
 import android.os.UserHandle
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.android.gamespace.R
-import com.android.gamespace.data.AppSettings
-import com.android.gamespace.ui.components.OverlayLifecycleOwner
-import com.android.gamespace.ui.components.createOverlayComposeView
-import com.android.gamespace.ui.theme.GameSpaceTheme
+import android.widget.FrameLayout
+import android.widget.TextView
+
+import androidx.core.animation.addListener
+
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ServiceScoped
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+
 import java.util.LinkedList
-import javax.inject.Inject
+
 import kotlin.math.ceil
-import kotlin.math.roundToInt
+
+import javax.inject.Inject
+
+import com.android.gamespace.R
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.gamebar.DanmakuServiceListener
 
 interface DanmakuServiceInterface {
     val danmakuNotificationMode: Boolean
@@ -87,105 +70,72 @@ class DanmakuService @Inject constructor(
 ) : DanmakuServiceInterface {
 
     private lateinit var notificationListener: DanmakuServiceListener
-    private val windowManager: WindowManager = context.getSystemService(WindowManager::class.java)!!
-    private val handler = Handler(Looper.getMainLooper())
-    private val notificationStack = LinkedList<String>()
 
-    private val overlayLifecycle = OverlayLifecycleOwner()
-    private var currentTextState by mutableStateOf("")
-    private var messageSequence by mutableIntStateOf(0)
-    private var slideDistancePx by mutableIntStateOf(0)
-
-    private val overlayRoot: ComposeView by lazy {
-        createOverlayComposeView(context, overlayLifecycle) {
-            GameSpaceTheme {
-                val text = currentTextState
-                val seq = messageSequence
-                val travel = slideDistancePx.toFloat()
-
-                val alphaAnim = remember { Animatable(0f) }
-                val offsetYAnim = remember { Animatable(0f) }
-
-                LaunchedEffect(seq, text) {
-                    if (text.isEmpty()) return@LaunchedEffect
-                    alphaAnim.snapTo(0f)
-                    offsetYAnim.snapTo(0f)
-
-                    // Appear
-                    launch {
-                        alphaAnim.animateTo(1f, tween(APPEAR_ANIMATION_DURATION.toInt()))
-                    }
-                    offsetYAnim.animateTo(travel / 2f, tween(APPEAR_ANIMATION_DURATION.toInt()))
-
-                    delay(DISPLAY_NOTIFICATION_DURATION)
-
-                    // Disappear
-                    launch {
-                        alphaAnim.animateTo(0f, tween(DISAPPEAR_ANIMATION_DURATION.toInt()))
-                    }
-                    offsetYAnim.animateTo(travel, tween(DISAPPEAR_ANIMATION_DURATION.toInt()))
-
-                    onCurrentAnimationFinished()
-                }
-
-                Box(
-                    contentAlignment = Alignment.TopCenter,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp)
-                ) {
-                    if (text.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color.Black.copy(alpha = 0.65f),
-                            modifier = Modifier
-                                .offset { IntOffset(0, offsetYAnim.value.roundToInt()) }
-                                .alpha(alphaAnim.value)
-                        ) {
-                            Text(
-                                text = text,
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+    private val notificationOverlay = TextView(context).apply {
+        gravity = Gravity.CENTER
+        maxLines = 2
+        setTextColor(Color.WHITE)
+        isFocusable = false
+        isClickable = false
     }
+
+    /**
+     * What is added to the window. The window is only ever resized or moved when the screen is
+     * rotated: the slide in and out is done by moving [notificationOverlay] inside of it, which
+     * costs a redraw. Moving the window instead is a call to the window manager for every single
+     * frame of the animation.
+     */
+    private val overlayRoot = FrameLayout(context).apply {
+        isFocusable = false
+        isClickable = false
+        // The text moves into the padding, which is where the room for the slide is.
+        clipToPadding = false
+        addView(
+            notificationOverlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    private val windowManager: WindowManager = context.getSystemService(WindowManager::class.java)!!
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val notificationStack = LinkedList<String>()
 
     private var layoutParams: LayoutParams = LayoutParams().apply {
         height = LayoutParams.WRAP_CONTENT
         flags = flags or LayoutParams.FLAG_NOT_FOCUSABLE or
-            LayoutParams.FLAG_NOT_TOUCHABLE or
-            LayoutParams.FLAG_HARDWARE_ACCELERATED
+                LayoutParams.FLAG_NOT_TOUCHABLE or
+                LayoutParams.FLAG_HARDWARE_ACCELERATED
         type = LayoutParams.TYPE_SECURE_SYSTEM_OVERLAY
         format = PixelFormat.TRANSLUCENT
         gravity = Gravity.TOP
     }
 
     private var isPortrait: Boolean =
-        context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+            context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     private var verticalOffsetLandscape = 0
     private var verticalOffsetPortrait = 0
+
+    private var overlayAlphaAnimator: ValueAnimator? = null
+    private var overlayPositionAnimator: ValueAnimator? = null
+
+    private val popRunnable = Runnable { popNotification() }
+
     private var listenerRegistered = false
     private var destroyed = false
 
+    // The preferences hold their listeners weakly, so this has to stay referenced from here.
     private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == AppSettings.KEY_DANMAKU_NOTIFICATION_MODE) syncListener()
     }
 
     fun init() {
         destroyed = false
-        overlayLifecycle.onCreate()
-        overlayLifecycle.onResume()
         notificationListener = DanmakuServiceListener()
         notificationListener.danmakuServiceInterface = this
         updateParams()
@@ -195,7 +145,14 @@ class DanmakuService @Inject constructor(
 
     fun updateConfiguration(newConfig: Configuration) {
         isPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT
+        // end() on an animator that is not running would play it once more, and run its end
+        // action (which schedules the next step) a second time.
+        overlayAlphaAnimator?.takeIf { it.isRunning }?.end()
+        overlayPositionAnimator?.takeIf { it.isRunning }?.end()
         updateParams()
+        if (overlayPositionAnimator?.isRunning != true) {
+            notificationOverlay.translationY = (getOffsetForPosition() - layoutParams.y).toFloat()
+        }
         updateViewLayoutSafely()
     }
 
@@ -204,9 +161,13 @@ class DanmakuService @Inject constructor(
         appSettings.unregisterOnChange(settingsListener)
         if (listenerRegistered) unregisterListener()
         dismissOverlay()
-        overlayLifecycle.onDestroy()
     }
 
+    /**
+     * Listens to the notifications only while the Danmaku setting is on. Without it every
+     * notification that is posted during the game would still be sent to this process to be
+     * looked at, only to be thrown away.
+     */
     private fun syncListener() {
         if (destroyed) return
         if (appSettings.danmakuNotification) {
@@ -240,9 +201,20 @@ class DanmakuService @Inject constructor(
         }
     }
 
+    /** Stops whatever is on screen and what is still waiting to be shown. */
     private fun dismissOverlay() {
+        handler.removeCallbacks(popRunnable)
+        // The end action of an animator also runs when it is cancelled, and that would carry on
+        // with the next notification.
+        overlayAlphaAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        overlayPositionAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
         notificationStack.clear()
-        currentTextState = ""
         removeViewSafely()
     }
 
@@ -254,72 +226,129 @@ class DanmakuService @Inject constructor(
                 getDimensionPixelSize(R.dimen.notification_vertical_offset_portrait)
         }
         layoutParams.y = windowTop()
-        slideDistancePx = slideTravel()
-        layoutParams.width =
-            (NOTIFICATION_MAX_WIDTH * windowManager.currentWindowMetrics.bounds.width()) / 100
+        overlayRoot.setPadding(0, 0, 0, slideTravel())
+        layoutParams.width = (NOTIFICATION_MAX_WIDTH * windowManager.currentWindowMetrics.bounds.width()) / 100
+        notificationOverlay.setTextSize(
+            TypedValue.COMPLEX_UNIT_PX,
+            (if (isPortrait) NOTIFICATION_SIZE_PORTRAIT else NOTIFICATION_SIZE_LANDSCAPE).toFloat()
+        )
     }
 
-    private fun getOffsetForPosition(): Int =
-        if (isPortrait) verticalOffsetPortrait else verticalOffsetLandscape
+    /** Distance from the top of the screen of the notification while it is shown. */
+    private fun getOffsetForPosition(): Int {
+        return if (isPortrait) verticalOffsetPortrait else verticalOffsetLandscape
+    }
 
+    /** Where the window is: at the highest point of the slide. */
     private fun windowTop(): Int =
         (getOffsetForPosition() * (1 - SLIDE_ANIMATION_DISTANCE_FACTOR)).toInt()
 
+    /** How far the text moves from the top of the window to the lowest point of the slide. */
     private fun slideTravel(): Int =
         ceil(getOffsetForPosition() * 2 * SLIDE_ANIMATION_DISTANCE_FACTOR).toInt() + 1
 
-    override fun showNotificationAsOverlay(danmakuText: String) {
-        handler.post {
-            if (overlayRoot.parent == null) {
-                currentTextState = danmakuText
-                messageSequence++
-                windowManager.addView(overlayRoot, layoutParams)
-            } else {
-                notificationStack.add(danmakuText)
-            }
-        }
+    private fun prepareNotification(text: String) {
+        notificationOverlay.alpha = 0f
+        notificationOverlay.translationY = 0f
+        notificationOverlay.text = text
     }
 
-    private fun onCurrentAnimationFinished() {
-        if (notificationStack.isEmpty()) {
-            currentTextState = ""
-            removeViewSafely()
+    override fun showNotificationAsOverlay(notification: String) {
+        if (overlayRoot.parent == null) {
+            prepareNotification(notification)
+            windowManager.addView(overlayRoot, layoutParams)
+            pushNotification()
         } else {
-            currentTextState = notificationStack.pop()
-            messageSequence++
+            notificationStack.add(notification)
         }
     }
-
+    
     override fun getApplabel(packageName: String): String {
-        return try {
-            val appInfo = context.packageManager.getApplicationInfo(packageName, 0)
-            context.packageManager.getApplicationLabel(appInfo).toString()
-        } catch (e: Exception) {
-            ""
-        }
+        return packageName.let {
+                try {
+                    val appInfo = context.packageManager.getApplicationInfo(it, 0)
+                    context.packageManager.getApplicationLabel(appInfo).toString()
+                } catch (e: Exception) {
+                    ""
+                }
+            }
     }
 
     override val danmakuNotificationMode: Boolean
         get() = appSettings.danmakuNotification
 
-    private fun updateViewLayoutSafely() {
-        if (overlayRoot.parent != null) {
-            windowManager.updateViewLayout(overlayRoot, layoutParams)
+    private fun pushNotification() {
+        val end = getOffsetForPosition().toFloat()
+        val start = end * (1 - SLIDE_ANIMATION_DISTANCE_FACTOR)
+        overlayPositionAnimator = getPositionAnimator(APPEAR_ANIMATION_DURATION, start, end).also {
+            it.addListener(onEnd = {
+                handler.postDelayed(popRunnable, DISPLAY_NOTIFICATION_DURATION)
+            })
+            it.start()
         }
+        startAlphaAnimation(APPEAR_ANIMATION_DURATION, 0f, 1f)
+    }
+
+    private fun popNotification() {
+        val start = getOffsetForPosition().toFloat()
+        val end = start * (1 + SLIDE_ANIMATION_DISTANCE_FACTOR)
+        overlayPositionAnimator =
+            getPositionAnimator(DISAPPEAR_ANIMATION_DURATION, start, end).also {
+                it.addListener(onEnd = {
+                    if (notificationStack.isEmpty()) {
+                        removeViewSafely()
+                    } else {
+                        prepareNotification(notificationStack.pop())
+                        pushNotification()
+                    }
+                })
+                it.start()
+            }
+        startAlphaAnimation(DISAPPEAR_ANIMATION_DURATION, 1f, 0f)
+    }
+
+    /** [values] are distances from the top of the screen. */
+    private fun getPositionAnimator(duration: Long, vararg values: Float): ValueAnimator {
+        return ValueAnimator.ofFloat(*values).apply {
+            this.duration = duration
+            addUpdateListener {
+                notificationOverlay.translationY = (it.animatedValue as Float) - layoutParams.y
+            }
+        }
+    }
+
+    private fun startAlphaAnimation(duration: Long, vararg values: Float) {
+        overlayAlphaAnimator = ValueAnimator.ofFloat(*values).apply {
+            this.duration = duration
+            addUpdateListener {
+                notificationOverlay.alpha = it.animatedValue as Float
+            }
+        }.also { it.start() }
+    }
+
+    private fun updateViewLayoutSafely() {
+        if (overlayRoot.parent != null)
+            windowManager.updateViewLayout(overlayRoot, layoutParams)
     }
 
     private fun removeViewSafely() {
-        if (overlayRoot.parent != null) {
+        if (overlayRoot.parent != null)
             windowManager.removeViewImmediate(overlayRoot)
-        }
     }
 
     companion object {
+    
         private const val TAG = "DanmakuService"
+
         private const val SLIDE_ANIMATION_DISTANCE_FACTOR = 0.5f
+
         private const val APPEAR_ANIMATION_DURATION = 500L
         private const val DISPLAY_NOTIFICATION_DURATION = 2000L
         private const val DISAPPEAR_ANIMATION_DURATION = 300L
+
+        private const val NOTIFICATION_SIZE_LANDSCAPE = 60
+        private const val NOTIFICATION_SIZE_PORTRAIT = 60
+
         private const val NOTIFICATION_MAX_WIDTH = 75
     }
 }

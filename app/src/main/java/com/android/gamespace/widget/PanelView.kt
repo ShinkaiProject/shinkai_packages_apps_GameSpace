@@ -4,35 +4,49 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.media.AudioManager
 import android.os.BatteryManager
+import android.os.Bundle
 import android.provider.Settings
 import android.transition.ChangeBounds
 import android.transition.Fade
 import android.transition.TransitionManager
 import android.util.AttributeSet
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.LayoutInflater
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.ViewFlipper
-import android.view.animation.DecelerateInterpolator
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import androidx.core.view.doOnLayout
+import android.widget.TextView
+import android.widget.ViewFlipper
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.findViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.android.gamespace.R
-import com.android.gamespace.data.TileLayoutModel
+import com.android.gamespace.data.AppSettings
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.entryPointOf
+import com.android.gamespace.widget.tiles.GameSpaceTilePager
 import com.android.gamespace.widget.tiles.TileType
-import com.android.gamespace.widget.tiles.TilePagerAdapter
 
 class PanelView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -41,12 +55,55 @@ class PanelView @JvmOverloads constructor(
     private val appSettings by lazy { context.entryPointOf<ServiceViewEntryPoint>().appSettings() }
     private var nowPlaying: NowPlayingController? = null
 
+    private var selectedTileTypes by mutableStateOf<List<TileType>>(emptyList())
+    private var isTilePagerActive by mutableStateOf(false)
+    private var panelLifecycleOwner: PanelLifecycleOwner? = null
+
+    private val settingsChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == AppSettings.KEY_SELECTED_TILES && !editing && isAttachedToWindow) {
+                populateTiles()
+            }
+        }
+
     init {
         LayoutInflater.from(context).inflate(R.layout.panel_view, this, true)
         isClickable = true
         isFocusable = true
+        setupTilePagerComposeView()
     }
-    
+
+    private fun setupTilePagerComposeView() {
+        val pagerComposeView = requireViewById<ComposeView>(R.id.tiles_pager)
+        pagerComposeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnDetachedFromWindow
+        )
+        pagerComposeView.setContent {
+            if (isTilePagerActive) {
+                GameSpaceTilePager(tiles = selectedTileTypes)
+            }
+        }
+    }
+
+    private fun ensureViewTreeOwners() {
+        if (findViewTreeLifecycleOwner() == null || findViewTreeSavedStateRegistryOwner() == null) {
+            val owner = PanelLifecycleOwner().also {
+                it.onAttach()
+                panelLifecycleOwner = it
+            }
+            val targetRoot = rootView ?: this
+            targetRoot.setViewTreeLifecycleOwner(owner)
+            targetRoot.setViewTreeSavedStateRegistryOwner(owner)
+            setViewTreeLifecycleOwner(owner)
+            setViewTreeSavedStateRegistryOwner(owner)
+        }
+    }
+
+    private fun releaseViewTreeOwners() {
+        panelLifecycleOwner?.onDetach()
+        panelLifecycleOwner = null
+    }
+
     fun updateTranslationY() {
         val targetMargin = appSettings.y
         val params = layoutParams as ViewGroup.MarginLayoutParams
@@ -61,7 +118,9 @@ class PanelView @JvmOverloads constructor(
     }
 
     override fun onAttachedToWindow() {
+        ensureViewTreeOwners()
         super.onAttachedToWindow()
+        appSettings.registerOnChange(settingsChangeListener)
         updateTranslationY()
         batteryTemperature()
         populateTiles()
@@ -71,11 +130,16 @@ class PanelView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
+        appSettings.unregisterOnChange(settingsChangeListener)
         nowPlaying?.stop()
         nowPlaying = null
         // The panel is reused, and attaching it builds its tiles again.
         setEditing(false, animate = false, rebuildTiles = false)
+        isTilePagerActive = false
+        selectedTileTypes = emptyList()
+        requireViewById<ComposeView>(R.id.tiles_pager).disposeComposition()
+        super.onDetachedFromWindow()
+        releaseViewTreeOwners()
     }
 
     private val panelContentTransition = ChangeBounds().apply {
@@ -97,9 +161,8 @@ class PanelView @JvmOverloads constructor(
     }
 
     private fun populateTiles() {
-        val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
-        val pages = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }.chunked(TileLayoutModel.TILES_PER_PAGE)
-        pager.adapter = TilePagerAdapter(context, pages)
+        selectedTileTypes = appSettings.selectedTiles.mapNotNull { TileType.fromId(it) }
+        isTilePagerActive = !editing
     }
 
     private var editing = false
@@ -131,7 +194,7 @@ class PanelView @JvmOverloads constructor(
         val normal = requireViewById<View>(R.id.panel_normal_content)
         val list = requireViewById<RecyclerView>(R.id.panel_edit_list)
         val container = requireViewById<ViewGroup>(R.id.panel_content_container)
-        val pager = requireViewById<ViewPager2>(R.id.tiles_pager)
+        val pager = requireViewById<ComposeView>(R.id.tiles_pager)
         val button = requireViewById<ImageButton>(R.id.panel_edit_button)
 
         if (animate) {
@@ -159,7 +222,8 @@ class PanelView @JvmOverloads constructor(
             container.layoutParams = containerParams
 
             // Tiles that are not shown should not keep listening for updates.
-            pager.adapter = null
+            isTilePagerActive = false
+            pager.disposeComposition()
             val editor = tileEditor
                 ?: PanelTileEditor(list, appSettings).also { tileEditor = it }
             editor.open()
@@ -183,7 +247,7 @@ class PanelView @JvmOverloads constructor(
             context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))!!
         val temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0).toInt() / 10
         val degree = "\u2103"
-        val batteryTemp:TextView = requireViewById(R.id.batteryTemp)
+        val batteryTemp: TextView = requireViewById(R.id.batteryTemp)
         batteryTemp.text = "$temp$degree"
     }
 
@@ -244,6 +308,35 @@ class PanelView @JvmOverloads constructor(
                 else -> R.drawable.ic_volume
             }
         )
+    }
+
+    /**
+     * Lightweight [LifecycleOwner] and [SavedStateRegistryOwner] for hosting [ComposeView] inside
+     * the [GameBarService] overlay window where no Activity host is present.
+     */
+    private class PanelLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner {
+        private val lifecycleRegistry = LifecycleRegistry(this)
+        private val savedStateController = SavedStateRegistryController.create(this)
+
+        override val lifecycle: Lifecycle
+            get() = lifecycleRegistry
+
+        override val savedStateRegistry: SavedStateRegistry
+            get() = savedStateController.savedStateRegistry
+
+        fun onAttach() {
+            savedStateController.performAttach()
+            savedStateController.performRestore(Bundle.EMPTY)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
+
+        fun onDetach() {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
     }
 
     private companion object {
