@@ -1,20 +1,16 @@
 package com.android.gamespace.display
 
 import android.os.Bundle
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import androidx.activity.ComponentActivity
+import com.android.gamespace.ui.display.DisplayEnhancerScreen
+import com.android.gamespace.ui.setGameSpaceContent
 
-class DisplayEnhancerActivity : CollapsingToolbarBaseActivity() {
-
+class DisplayEnhancerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            supportFragmentManager
-                .beginTransaction()
-                .replace(
-                    com.android.settingslib.collapsingtoolbar.R.id.content_frame,
-                    DisplayEnhancerFragment()
-                )
-                .commit()
+        val enhancer = displayEnhancer()
+        setGameSpaceContent {
+            DisplayEnhancerScreen(enhancer = enhancer, onBack = ::finish)
         }
     }
 }

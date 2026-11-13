@@ -1,18 +1,30 @@
 package com.android.gamespace.stats
 
+import android.content.Intent
 import android.os.Bundle
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import androidx.activity.ComponentActivity
+import com.android.gamespace.data.FpsSessionStore
+import com.android.gamespace.ui.setGameSpaceContent
+import com.android.gamespace.ui.stats.FpsStatsScreen
 
 /** Lists the recorded FPS sessions. */
-class FpsStatsActivity : CollapsingToolbarBaseActivity() {
+class FpsStatsActivity : ComponentActivity() {
+
+    private val store by lazy { FpsSessionStore(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            supportFragmentManager
-                .beginTransaction()
-                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, FpsStatsFragment())
-                .commit()
+        setGameSpaceContent {
+            FpsStatsScreen(
+                store = store,
+                onBack = ::finish,
+                onOpenSession = { id ->
+                    startActivity(
+                        Intent(this, FpsSessionActivity::class.java)
+                            .putExtra(FpsSessionActivity.EXTRA_ID, id)
+                    )
+                },
+            )
         }
     }
 }

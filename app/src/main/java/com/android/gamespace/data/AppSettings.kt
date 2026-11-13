@@ -21,14 +21,17 @@ import android.app.Service
 import android.content.Context
 import android.content.SharedPreferences
 import android.view.WindowManager
-import androidx.preference.PreferenceManager
 import com.android.gamespace.utils.dp
 import com.android.gamespace.utils.statusbarHeight
 import javax.inject.Inject
 
 class AppSettings @Inject constructor(private val context: Context) {
 
-    private val db by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
+    // The file that the preference library called the default one, so that what was saved there
+    // by earlier versions is still read: the package name and "_preferences".
+    private val db by lazy {
+        context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+    }
     private val wm by lazy { context.getSystemService(Service.WINDOW_SERVICE) as WindowManager }
 
     /**

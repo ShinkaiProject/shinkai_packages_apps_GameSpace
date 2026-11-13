@@ -15,19 +15,36 @@
  */
 package com.android.gamespace.preferences.appselector
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import androidx.activity.ComponentActivity
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.ui.settings.AppSelectorScreen
+import com.android.gamespace.ui.setGameSpaceContent
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-@AndroidEntryPoint(CollapsingToolbarBaseActivity::class)
+@AndroidEntryPoint(ComponentActivity::class)
 class AppSelectorActivity : Hilt_AppSelectorActivity() {
+    @Inject lateinit var settings: SystemSettings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, AppSelectorFragment())
-                .commit()
+        setGameSpaceContent {
+            AppSelectorScreen(
+                settings = settings,
+                onBack = ::finish,
+                onSelect = { packageName ->
+                    setResult(Activity.RESULT_OK, Intent().putExtra(EXTRA_APP, packageName))
+                    finish()
+                },
+            )
         }
+    }
+
+    companion object {
+        /** In the result: the package of the app that was picked. */
+        const val EXTRA_APP = "selected_app"
     }
 }

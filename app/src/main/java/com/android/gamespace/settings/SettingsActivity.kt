@@ -17,19 +17,30 @@
 package com.android.gamespace.settings
 
 import android.os.Bundle
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import androidx.activity.ComponentActivity
+import com.android.gamespace.data.AppSettings
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.ui.setGameSpaceContent
+import com.android.gamespace.ui.settings.SettingsScreen
+import com.android.gamespace.utils.GameModeUtils
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-@AndroidEntryPoint(CollapsingToolbarBaseActivity::class)
+@AndroidEntryPoint(ComponentActivity::class)
 class SettingsActivity : Hilt_SettingsActivity() {
+    @Inject lateinit var appSettings: AppSettings
+    @Inject lateinit var systemSettings: SystemSettings
+    @Inject lateinit var gameModeUtils: GameModeUtils
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            supportFragmentManager
-                .beginTransaction()
-                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, SettingsFragment())
-                .commit()
+        setGameSpaceContent {
+            SettingsScreen(
+                appSettings = appSettings,
+                systemSettings = systemSettings,
+                gameModeUtils = gameModeUtils,
+                onBack = ::finish,
+            )
         }
     }
 }

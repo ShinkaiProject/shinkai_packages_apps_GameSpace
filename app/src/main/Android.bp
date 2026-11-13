@@ -6,9 +6,6 @@ android_app {
     manifest: "AndroidManifest.xml",
     certificate: "platform",
     resource_dirs: ["res"],
-    defaults: [
-        "SettingsLibDefaults",
-    ],
     srcs: [
         "java/**/*.java",
         "java/**/*.kt",
@@ -17,39 +14,34 @@ android_app {
     aidl: {
         local_include_dirs: ["java"],
     },
+    // ASSUMPTION: the module names below follow the usual AOSP prebuilts/sdk androidx names. Compare
+    // them (and the Compose compiler plugin entry under "plugins") with the Android.bp of another
+    // Compose app in the tree, for example AppDataBackup, and adjust what differs.
     static_libs: [
         "androidx.core_core-ktx",
-        "androidx.appcompat_appcompat",
-        "androidx.preference_preference",
-        "androidx.recyclerview_recyclerview",
-        "androidx.lifecycle_lifecycle-common",
+        "androidx.activity_activity-compose",
+        "androidx.compose.animation_animation",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.material_material-ripple",
+        "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.ui_ui",
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.savedstate_savedstate-ktx",
-        "androidx.compose.runtime_runtime",
-        "androidx.compose.foundation_foundation",
-        "androidx.compose.ui_ui",
-        "androidx.compose.ui_ui-graphics",
-        "androidx.compose.ui_ui-text",
-        "androidx.compose.ui_ui-unit",
-        "androidx.compose.animation_animation",
-        "androidx.compose.animation_animation-core",
-        "androidx.compose.material3_material3",
-        "com.google.android.material_material",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "gson",
         "hilt_android",
-        "custom-preference",
+        "lottie",
     ],
     kotlincflags: [
         "-opt-in=kotlin.Experimental",
         "-opt-in=kotlin.ExperimentalStdlibApi",
-        "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
-        "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
     ],
     plugins: [
         "dagger2-compiler",
-        "androidx.compose.compiler_compiler-hosted",
+        // ASSUMPTION: the Compose compiler plugin. Use the same entry as the other Compose app.
+        "androidx.compose.compiler_compiler-hosted-plugin",
     ],
 
     required: [

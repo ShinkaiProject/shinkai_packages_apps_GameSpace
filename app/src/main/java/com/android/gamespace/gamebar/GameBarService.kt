@@ -24,30 +24,28 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
-import android.graphics.Point
 import android.os.Binder
 import android.os.Handler
 import android.os.Looper
-import android.view.*
-import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.LinearLayout
+import android.os.UserHandle
+import android.view.Gravity
+import android.view.WindowManager
+import androidx.compose.ui.unit.IntOffset
 import androidx.core.app.NotificationCompat
-import androidx.core.view.*
 import com.android.systemui.screenrecord.IRecordingCallback
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.settings.SettingsActivity
+import com.android.gamespace.ui.overlay.ComposeOverlay
+import com.android.gamespace.ui.overlay.EXPANDED_MARGIN_PX
+import com.android.gamespace.ui.overlay.GameBar
+import com.android.gamespace.ui.overlay.GameBarState
+import com.android.gamespace.ui.overlay.GamePanel
+import com.android.gamespace.ui.overlay.PANEL_FADE_MS
+import com.android.gamespace.ui.overlay.PanelState
 import com.android.gamespace.utils.*
-import com.android.gamespace.widget.MenuSwitcher
-import com.android.gamespace.widget.PanelView
 import javax.inject.Inject
-import kotlin.reflect.KProperty0
-import android.os.UserHandle
-import android.transition.AutoTransition
-import android.transition.TransitionManager
-import android.view.animation.DecelerateInterpolator
 
 @AndroidEntryPoint(Service::class)
 class GameBarService : Hilt_GameBarService() {
@@ -59,7 +57,6 @@ class GameBarService : Hilt_GameBarService() {
 
     private val wm by lazy { getSystemService(WINDOW_SERVICE) as WindowManager }
     private val handler by lazy { Handler(Looper.getMainLooper()) }
-    private val inflater by lazy { LayoutInflater.from(this) }
 
     private var halfWidth = 0
     private var safeHeight = 0
@@ -92,80 +89,45 @@ class GameBarService : Hilt_GameBarService() {
         gravity = Gravity.CENTER_VERTICAL
     }
 
-    private lateinit var rootBarView: View
-    private lateinit var barView: LinearLayout
-    private lateinit var menuSwitcher: MenuSwitcher
-    private lateinit var rootPanelView: LinearLayout
-    private lateinit var panelView: PanelView
+    /** What the bar shows; the windows below only draw it. */
+    private val barState = GameBarState()
+
+    // A window of Compose is used once: each time the bar or the panel comes up, a new one is made.
+    private var barOverlay: ComposeOverlay? = null
+    private var panelOverlay: ComposeOverlay? = null
+    private var panelState: PanelState? = null
+
+    /** Panels that are fading out, and are taken off the screen when they are done. */
+    private val closingPanels = mutableListOf<ComposeOverlay>()
+    private var panelOpen = false
 
     private val binder = GameBarBinder()
     private val autoCollapseRunnable = Runnable { barExpanded = false }
-    private val firstPaint = Runnable { initActions() }
+    private val firstPaint = Runnable { reveal() }
     private var shouldClose = false
     private var isGameStarting = false
+    private var recorderWatched = false
 
     private val recordingListener = object : FpsRecorder.Listener {
         override fun onStateChanged(recording: Boolean) {
-            menuSwitcher.isRecording = recording
+            barState.fpsRecording = recording
         }
     }
 
-    private var barExpanded = false
+    private var barExpanded: Boolean
+        get() = barState.expanded
         set(value) {
-            field = value
-            TransitionManager.beginDelayedTransition(
-                barView,
-                AutoTransition().apply {
-                    duration = 220L
-                    interpolator = DecelerateInterpolator()
-                    excludeTarget(menuSwitcher, true)
-                }
-            )
-            menuSwitcher.updateIconState(value, barLayoutParam.x)
-            barView.children.forEach { if (it.id != R.id.action_menu_switcher) it.isVisible = value }
-            updateBackground()
-            updateContainerGaps()
+            barState.expanded = value
+            barState.showFps = if (value) false else appSettings.showFps
             if (value) scheduleAutoCollapse() else handler.removeCallbacks(autoCollapseRunnable)
-        }
-
-    private var showPanel = false
-        set(value) {
-            field = value
-            if (value) {
-                handler.removeCallbacks(autoCollapseRunnable)
-                if (!::rootPanelView.isInitialized) {
-                    setupPanelView()
-                }
-                updatePanelGravity()
-                if (!rootPanelView.isAttachedToWindow) {
-                    wm.addView(rootPanelView, panelLayoutParam)
-                    rootPanelView.fadeIn()
-                }
-            } else {
-                if (safeAttached(::rootPanelView.isInitialized, rootPanelView)) {
-                    rootPanelView.fadeOut {
-                        rootPanelView.visibility = View.INVISIBLE
-                        handler.postDelayed({
-                            runCatching {
-                                wm.removeView(rootPanelView)
-                            }.onFailure { it.printStackTrace() }
-                        }, 50)
-                    }
-                }
-                if (barExpanded) scheduleAutoCollapse()
-            }
         }
 
     override fun onCreate() {
         super.onCreate()
-        val frame = FrameLayout(this)
-        rootBarView = inflater.inflate(R.layout.window_util, frame, false)
-        barView = rootBarView.findViewById(R.id.container_bar)
-        menuSwitcher = rootBarView.findViewById(R.id.action_menu_switcher)
-        applyOpacity()
+        barState.opacity = appSettings.menuOpacity / 100f
         updateScreenMetrics()
         danmakuService.init()
-        menuSwitcher.isRecording = fpsRecorder.isRecording
+        barState.fpsRecording = fpsRecorder.isRecording
         fpsRecorder.addListener(recordingListener)
     }
 
@@ -174,12 +136,6 @@ class GameBarService : Hilt_GameBarService() {
         halfWidth = bounds.width() / 2
         safeArea = statusbarHeight + 4.dp
         safeHeight = bounds.height() - safeArea
-    }
-
-    private fun applyOpacity() {
-        val alphaValue = appSettings.menuOpacity / 100f
-        barView.alpha = alphaValue
-        menuSwitcher.alpha = alphaValue
     }
 
     private fun startForegroundService() {
@@ -228,7 +184,7 @@ class GameBarService : Hilt_GameBarService() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         updateScreenMetrics()
-        if (!rootBarView.isVisible) {
+        if (!barState.revealed) {
             handler.removeCallbacks(firstPaint)
             handler.postDelayed({
                 firstPaint.run()
@@ -245,16 +201,40 @@ class GameBarService : Hilt_GameBarService() {
         isGameStarting = true
 
         handler.post {
-            if (!::rootBarView.isInitialized) return@post
-            if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
+            if (barOverlay?.isAttached == true) {
                 isGameStarting = false
                 return@post
             }
 
             shouldClose = false
-            rootBarView.isVisible = false
-            rootBarView.alpha = 0f
-            wm.addView(rootBarView, barLayoutParam)
+            barState.revealed = false
+            barState.dragging = false
+            barState.expanded = false
+            // The bar is put in its place before it is put on the screen, and not touchable until it
+            // is shown: it is there, but not to be seen yet.
+            barLayoutParam.x = appSettings.x
+            barLayoutParam.y = appSettings.y
+            barLayoutParam.flags = barLayoutParam.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            dockCollapsedMenu()
+
+            barOverlay = ComposeOverlay(this) {
+                GameBar(
+                    state = barState,
+                    initialPosition = { IntOffset(barLayoutParam.x, barLayoutParam.y) },
+                    onMove = ::onBarMove,
+                    onMoveComplete = ::onBarMoveComplete,
+                    onToggle = { barExpanded = !barExpanded },
+                    onPanel = { if (panelOpen) closePanel() else openPanel() },
+                    onPanelLongClick = {
+                        startActivity(
+                            Intent(this, SettingsActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    onSidebar = ::openSidebar,
+                    onScreenshot = ::takeShot,
+                    onRecord = ::toggleRecording,
+                )
+            }.also { it.attach(wm, barLayoutParam) }
             handler.postDelayed(firstPaint, 500)
             startForegroundService()
             isGameStarting = false
@@ -267,17 +247,17 @@ class GameBarService : Hilt_GameBarService() {
         shouldClose = true
         handler.removeCallbacksAndMessages(null)
 
-        runCatching {
-            if (safeAttached(::rootPanelView.isInitialized, rootPanelView)) {
-                wm.removeViewImmediate(rootPanelView)
-            }
-        }
+        panelOpen = false
+        panelOverlay?.detach(wm, immediate = true)
+        panelOverlay = null
+        panelState = null
+        closingPanels.forEach { it.detach(wm, immediate = true) }
+        closingPanels.clear()
 
-        runCatching {
-            if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
-                wm.removeViewImmediate(rootBarView)
-            }
-        }
+        barOverlay?.detach(wm, immediate = true)
+        barOverlay = null
+        barState.revealed = false
+        barState.expanded = false
 
         stopForeground(true)
         stopSelf()
@@ -285,101 +265,90 @@ class GameBarService : Hilt_GameBarService() {
 
     private fun updateLayout(update: WindowManager.LayoutParams.() -> Unit = {}) {
         barLayoutParam.update()
-        if (rootBarView.isAttachedToWindow) {
-            wm.updateViewLayout(rootBarView, barLayoutParam)
-        }
+        barOverlay?.update(wm, barLayoutParam)
     }
 
-    private fun initActions() {
-        if (shouldClose) return
-        rootBarView.fadeIn()
+    /** The first time the bar is shown, a moment after the window was put on the screen. */
+    private fun reveal() {
+        if (shouldClose || barOverlay?.isAttached != true) return
+        barState.opacity = appSettings.menuOpacity / 100f
+        barLayoutParam.flags = barLayoutParam.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
         barExpanded = false
         barLayoutParam.x = appSettings.x
         barLayoutParam.y = appSettings.y
+        barState.revealed = true
         dockCollapsedMenu()
-        menuSwitcherButton()
-        panelButton()
-        sidebarButton()
-        screenshotButton()
-        recorderButton()
-    }
-
-    private fun updateBackground() {
-        val barDragged = !barExpanded && barView.translationX == 0f
-        val collapsedAtStart = !barDragged && barLayoutParam.x < 0
-        val collapsedAtEnd = !barDragged && barLayoutParam.x > 0
-        barView.setBackgroundResource(
-            when {
-                barExpanded -> R.drawable.bar_expanded
-                collapsedAtStart -> R.drawable.bar_collapsed_start
-                collapsedAtEnd -> R.drawable.bar_collapsed_end
-                else -> R.drawable.bar_dragged
-            }
-        )
-    }
-
-    private fun updateContainerGaps() {
-        val currentParams = barView.layoutParams as ViewGroup.MarginLayoutParams
-        val targetLeft = if (barExpanded) 48 else 0
-        val targetRight = if (barExpanded) 48 else 0
-
-        if (currentParams.leftMargin != targetLeft || currentParams.rightMargin != targetRight) {
-            barView.updatePaddingRelative(
-                start = if (barExpanded) 8 else 0,
-                top = if (barExpanded) 8 else 0,
-                end = if (barExpanded) 8 else 0,
-                bottom = if (barExpanded) 8 else 0
-            )
-            currentParams.setMargins(targetLeft, 0, targetRight, 0)
-            barView.layoutParams = currentParams
-        }
+        watchScreenRecorder()
     }
 
     private fun dockCollapsedMenu() {
-        if (barLayoutParam.x < 0) {
-            barView.translationX = -22f
-            barLayoutParam.x = -halfWidth
-        } else {
-            barView.translationX = 22f
-            barLayoutParam.x = halfWidth
-        }
-
+        // x counts from the middle of the screen: the sign says which side the bar is on.
+        barState.dockedEnd = barLayoutParam.x >= 0
+        barLayoutParam.x = if (barLayoutParam.x < 0) -halfWidth else halfWidth
         barLayoutParam.y = barLayoutParam.y.coerceIn(safeArea, safeHeight)
-        updateBackground()
-        updateContainerGaps()
-        menuSwitcher.showFps = if (barExpanded) false else appSettings.showFps
-        menuSwitcher.updateIconState(barExpanded, barLayoutParam.x)
-        if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
-            wm.updateViewLayout(rootBarView, barLayoutParam)
+        barState.showFps = if (barExpanded) false else appSettings.showFps
+        barOverlay?.update(wm, barLayoutParam)
+    }
+
+    private fun onBarMove(x: Int, y: Int) {
+        barState.dragging = true
+        updateLayout {
+            this.x = x
+            this.y = y
         }
+        if (barExpanded) scheduleAutoCollapse()
+    }
+
+    private fun onBarMoveComplete() {
+        barState.dragging = false
+        dockCollapsedMenu()
+        appSettings.x = barLayoutParam.x
+        appSettings.y = barLayoutParam.y
     }
 
     private fun scheduleAutoCollapse() {
         handler.removeCallbacks(autoCollapseRunnable)
-        if (!appSettings.barAutoHideEnabled || showPanel) return
+        if (!appSettings.barAutoHideEnabled || panelOpen) return
         handler.postDelayed(autoCollapseRunnable, appSettings.barAutoHideDelaySec * 1000L)
     }
 
-    private fun setupPanelView() {
-        rootPanelView = inflater.inflate(R.layout.window_panel, FrameLayout(this), false) as LinearLayout
-        rootPanelView.alpha = 0f
-        rootPanelView.visibility = View.INVISIBLE
+    private fun openPanel() {
+        if (panelOpen) return
+        panelOpen = true
+        handler.removeCallbacks(autoCollapseRunnable)
 
-        panelView = rootPanelView.findViewById(R.id.panel_view)
-        panelView.alpha = appSettings.menuOpacity / 100f
-
-        rootPanelView.setOnClickListener { showPanel = false }
+        val state = PanelState()
+        // What the bar takes of the side: itself and the gap to the edge on its outer side.
+        val barWidth = ((barOverlay?.width ?: 0) - EXPANDED_MARGIN_PX).coerceAtLeast(0)
+        val dockedEnd = barLayoutParam.x >= 0
+        panelState = state
+        panelOverlay = ComposeOverlay(this) {
+            GamePanel(
+                state = state,
+                appSettings = appSettings,
+                dockedEnd = dockedEnd,
+                barWidthPx = barWidth,
+                onDismiss = { closePanel() },
+            )
+        }.also { it.attach(wm, panelLayoutParam) }
     }
 
-    private fun updatePanelGravity() {
-        val barWidth = barView.width + barView.marginStart
-        if (barLayoutParam.x < 0) {
-            rootPanelView.gravity = Gravity.START
-            rootPanelView.setPaddingRelative(barWidth, 16, 16, 16)
-        } else {
-            rootPanelView.gravity = Gravity.END
-            rootPanelView.setPaddingRelative(16, 16, barWidth, 16)
+    private fun closePanel() {
+        if (!panelOpen) return
+        panelOpen = false
+        val overlay = panelOverlay
+        panelState?.closing = true
+        panelOverlay = null
+        panelState = null
+        if (overlay != null) {
+            closingPanels += overlay
+            // After the fade, and a moment more.
+            handler.postDelayed({
+                closingPanels.remove(overlay)
+                overlay.detach(wm)
+            }, PANEL_FADE_MS + 50L)
         }
+        if (barExpanded) scheduleAutoCollapse()
     }
 
     private fun takeShot() {
@@ -399,52 +368,6 @@ class GameBarService : Hilt_GameBarService() {
         }, 250)
     }
 
-    private fun menuSwitcherButton() {
-        menuSwitcher.setOnClickListener {
-            barExpanded = !barExpanded
-        }
-
-        menuSwitcher.registerDraggableTouchListener(
-            initPoint = { Point(barLayoutParam.x, barLayoutParam.y) },
-            listener = { x, y ->
-                if (!menuSwitcher.isDragged) {
-                    menuSwitcher.isDragged = true
-                    barView.translationX = 0f
-                }
-                updateLayout {
-                    this.x = x
-                    this.y = y
-                }
-                updateBackground()
-                if (barExpanded) scheduleAutoCollapse()
-            },
-            onComplete = {
-                menuSwitcher.isDragged = false
-                dockCollapsedMenu()
-                updateBackground()
-                appSettings.x = barLayoutParam.x
-                appSettings.y = barLayoutParam.y
-            }
-        )
-    }
-
-    private fun panelButton() {
-        val actionPanel = rootBarView.findViewById<ImageButton>(R.id.action_panel)
-        actionPanel.alpha = appSettings.menuOpacity / 100f
-        actionPanel.setOnClickListener { showPanel = !showPanel }
-        actionPanel.setOnLongClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        }
-    }
-
-    private fun sidebarButton() {
-        rootBarView.findViewById<ImageButton>(R.id.action_sidebar).apply {
-            alpha = appSettings.menuOpacity / 100f
-            setOnClickListener { openSidebar() }
-        }
-    }
-
     private fun openSidebar() {
         val intent = Intent("com.android.gamespace.action.SHOW_SIDEBAR").apply {
             setPackage("com.libremobileos.sidebar")
@@ -453,59 +376,28 @@ class GameBarService : Hilt_GameBarService() {
         barExpanded = false
     }
 
-    private fun screenshotButton() {
-        rootBarView.findViewById<ImageButton>(R.id.action_screenshot).apply {
-            alpha = appSettings.menuOpacity / 100f
-            setOnClickListener { takeShot() }
-        }
-    }
-
-    private fun recorderButton() {
-        val actionRecorder = rootBarView.findViewById<ImageButton>(R.id.action_record)
-        actionRecorder.alpha = appSettings.menuOpacity / 100f
-        val recorder = screenUtils.recorder ?: run {
-            actionRecorder.isVisible = false
-            return
-        }
-
+    /** Shows the record button only if there is a recorder, and follows it. */
+    private fun watchScreenRecorder() {
+        val recorder = screenUtils.recorder
+        barState.hasRecorder = recorder != null
+        if (recorder == null || recorderWatched) return
+        recorderWatched = true
         recorder.addRecordingCallback(object : IRecordingCallback.Stub() {
             override fun onRecordingStart() {
-                handler.post { actionRecorder.isSelected = true }
+                handler.post { barState.screenRecording = true }
             }
 
             override fun onRecordingEnd() {
-                handler.post { actionRecorder.isSelected = false }
+                handler.post { barState.screenRecording = false }
             }
         })
-
-        actionRecorder.setOnClickListener {
-            if (recorder.isStarting) return@setOnClickListener
-            if (!recorder.isRecording) recorder.startRecording() else recorder.stopRecording()
-            barExpanded = false
-        }
     }
 
-    fun View.fadeIn(duration: Long = 300L) {
-        if (!isVisible || alpha < 1f) {
-            alpha = 0f
-            isVisible = true
-            animate().alpha(1f).setDuration(duration).start()
-        }
-    }
-
-    fun View.fadeOut(duration: Long = 300L, endAction: () -> Unit = {}) {
-        if (isVisible && alpha > 0f) {
-            animate().alpha(0f).setDuration(duration).withEndAction(endAction).start()
-        } else {
-            endAction()
-        }
-    }
-    
-    fun <T : View> safeAttached(initialized: Boolean, view: T): Boolean {
-        if (!initialized) {
-            return false
-        }
-        return view.isAttachedToWindow
+    private fun toggleRecording() {
+        val recorder = screenUtils.recorder ?: return
+        if (recorder.isStarting) return
+        if (!recorder.isRecording) recorder.startRecording() else recorder.stopRecording()
+        barExpanded = false
     }
 
     companion object {

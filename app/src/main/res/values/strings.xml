@@ -68,6 +68,8 @@
     <string name="fps_stats_delete">Delete</string>
     <string name="fps_stats_delete_message">Delete this FPS session?</string>
     <string name="more_options">More options</string>
+    <string name="back">Back</string>
+    <string name="game_add">Add game</string>
     <string name="fps_stats_select">Select</string>
     <string name="fps_stats_select_all">Select all</string>
     <string name="fps_stats_selected_count"><xliff:g id="count" example="3">%1$d</xliff:g> selected</string>

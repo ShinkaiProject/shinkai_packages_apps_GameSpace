@@ -16,25 +16,48 @@
  */
 package com.android.gamespace.settings
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import androidx.activity.ComponentActivity
+import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.ui.settings.PerAppScreen
+import com.android.gamespace.ui.setGameSpaceContent
+import com.android.gamespace.utils.GameModeUtils
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-@AndroidEntryPoint(CollapsingToolbarBaseActivity::class)
+@AndroidEntryPoint(ComponentActivity::class)
 class PerAppSettingsActivity : Hilt_PerAppSettingsActivity() {
+    @Inject lateinit var settings: SystemSettings
+    @Inject lateinit var gameModeUtils: GameModeUtils
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            supportFragmentManager
-                .beginTransaction()
-                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, PerAppSettingsFragment())
-                .commit()
+        val packageName = intent?.getStringExtra(EXTRA_PACKAGE)
+        if (packageName == null) {
+            finish()
+            return
+        }
+        setGameSpaceContent {
+            PerAppScreen(
+                packageName = packageName,
+                settings = settings,
+                gameModeUtils = gameModeUtils,
+                onBack = ::finish,
+                onUnregister = {
+                    setResult(Activity.RESULT_OK, Intent().putExtra(EXTRA_UNREGISTER, packageName))
+                    finish()
+                },
+            )
         }
     }
 
     companion object {
+        /** The package of the game to configure. */
         const val EXTRA_PACKAGE = "package_name"
+
+        /** In the result: the package of the game that is to be taken out of the library. */
+        const val EXTRA_UNREGISTER = "per_app_unregister"
     }
 }

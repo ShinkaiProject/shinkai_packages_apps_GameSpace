@@ -26,7 +26,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
-import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
@@ -35,12 +34,9 @@ import android.os.UserHandle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
-import android.widget.FrameLayout
-import android.widget.TextView
 
 import androidx.core.animation.addListener
 
@@ -56,6 +52,9 @@ import javax.inject.Inject
 import com.android.gamespace.R
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.gamebar.DanmakuServiceListener
+import com.android.gamespace.ui.overlay.ComposeOverlay
+import com.android.gamespace.ui.overlay.DanmakuOverlay
+import com.android.gamespace.ui.overlay.DanmakuState
 
 interface DanmakuServiceInterface {
     val danmakuNotificationMode: Boolean
@@ -71,33 +70,15 @@ class DanmakuService @Inject constructor(
 
     private lateinit var notificationListener: DanmakuServiceListener
 
-    private val notificationOverlay = TextView(context).apply {
-        gravity = Gravity.CENTER
-        maxLines = 2
-        setTextColor(Color.WHITE)
-        isFocusable = false
-        isClickable = false
-    }
+    private val state = DanmakuState()
 
     /**
-     * What is added to the window. The window is only ever resized or moved when the screen is
-     * rotated: the slide in and out is done by moving [notificationOverlay] inside of it, which
-     * costs a redraw. Moving the window instead is a call to the window manager for every single
-     * frame of the animation.
+     * The window that is on the screen while there is something to show; null when there is not.
+     * The window is only ever resized or moved when the screen is rotated: the slide in and out is
+     * done by moving the text inside of it, which costs a redraw. Moving the window instead is a
+     * call to the window manager for every single frame of the animation.
      */
-    private val overlayRoot = FrameLayout(context).apply {
-        isFocusable = false
-        isClickable = false
-        // The text moves into the padding, which is where the room for the slide is.
-        clipToPadding = false
-        addView(
-            notificationOverlay,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
-    }
+    private var overlay: ComposeOverlay? = null
 
     private val windowManager: WindowManager = context.getSystemService(WindowManager::class.java)!!
 
@@ -151,7 +132,7 @@ class DanmakuService @Inject constructor(
         overlayPositionAnimator?.takeIf { it.isRunning }?.end()
         updateParams()
         if (overlayPositionAnimator?.isRunning != true) {
-            notificationOverlay.translationY = (getOffsetForPosition() - layoutParams.y).toFloat()
+            state.translationY = (getOffsetForPosition() - layoutParams.y).toFloat()
         }
         updateViewLayoutSafely()
     }
@@ -226,12 +207,10 @@ class DanmakuService @Inject constructor(
                 getDimensionPixelSize(R.dimen.notification_vertical_offset_portrait)
         }
         layoutParams.y = windowTop()
-        overlayRoot.setPadding(0, 0, 0, slideTravel())
+        state.slideTravelPx = slideTravel()
         layoutParams.width = (NOTIFICATION_MAX_WIDTH * windowManager.currentWindowMetrics.bounds.width()) / 100
-        notificationOverlay.setTextSize(
-            TypedValue.COMPLEX_UNIT_PX,
+        state.textSizePx =
             (if (isPortrait) NOTIFICATION_SIZE_PORTRAIT else NOTIFICATION_SIZE_LANDSCAPE).toFloat()
-        )
     }
 
     /** Distance from the top of the screen of the notification while it is shown. */
@@ -248,15 +227,17 @@ class DanmakuService @Inject constructor(
         ceil(getOffsetForPosition() * 2 * SLIDE_ANIMATION_DISTANCE_FACTOR).toInt() + 1
 
     private fun prepareNotification(text: String) {
-        notificationOverlay.alpha = 0f
-        notificationOverlay.translationY = 0f
-        notificationOverlay.text = text
+        state.alpha = 0f
+        state.translationY = 0f
+        state.text = text
     }
 
     override fun showNotificationAsOverlay(notification: String) {
-        if (overlayRoot.parent == null) {
+        if (overlay == null) {
             prepareNotification(notification)
-            windowManager.addView(overlayRoot, layoutParams)
+            overlay = ComposeOverlay(context) { DanmakuOverlay(state) }.also {
+                it.attach(windowManager, layoutParams)
+            }
             pushNotification()
         } else {
             notificationStack.add(notification)
@@ -312,7 +293,7 @@ class DanmakuService @Inject constructor(
         return ValueAnimator.ofFloat(*values).apply {
             this.duration = duration
             addUpdateListener {
-                notificationOverlay.translationY = (it.animatedValue as Float) - layoutParams.y
+                state.translationY = (it.animatedValue as Float) - layoutParams.y
             }
         }
     }
@@ -321,19 +302,18 @@ class DanmakuService @Inject constructor(
         overlayAlphaAnimator = ValueAnimator.ofFloat(*values).apply {
             this.duration = duration
             addUpdateListener {
-                notificationOverlay.alpha = it.animatedValue as Float
+                state.alpha = it.animatedValue as Float
             }
         }.also { it.start() }
     }
 
     private fun updateViewLayoutSafely() {
-        if (overlayRoot.parent != null)
-            windowManager.updateViewLayout(overlayRoot, layoutParams)
+        overlay?.update(windowManager, layoutParams)
     }
 
     private fun removeViewSafely() {
-        if (overlayRoot.parent != null)
-            windowManager.removeViewImmediate(overlayRoot)
+        overlay?.detach(windowManager, immediate = true)
+        overlay = null
     }
 
     companion object {
