@@ -14,9 +14,10 @@ android_app {
     aidl: {
         local_include_dirs: ["java"],
     },
-    // ASSUMPTION: the module names below follow the usual AOSP prebuilts/sdk androidx names. Compare
-    // them (and the Compose compiler plugin entry under "plugins") with the Android.bp of another
-    // Compose app in the tree, for example AppDataBackup, and adjust what differs.
+    // The Compose compiler plugin is not listed under "plugins": Soong adds it by itself to a module
+    // that has "androidx.compose.runtime_runtime" in static_libs (keep that entry).
+    // ASSUMPTION: the other androidx module names follow the usual AOSP prebuilts/sdk naming. If one
+    // is reported as undefined, compare it with the Android.bp of another Compose app in the tree.
     static_libs: [
         "androidx.core_core-ktx",
         "androidx.activity_activity-compose",
@@ -40,8 +41,6 @@ android_app {
     ],
     plugins: [
         "dagger2-compiler",
-        // ASSUMPTION: the Compose compiler plugin. Use the same entry as the other Compose app.
-        "androidx.compose.compiler_compiler-hosted-plugin",
     ],
 
     required: [
