@@ -134,21 +134,12 @@ fun PanelTileEditor(
             val bottom = layoutInfo.viewportEndOffset.toFloat()
             val topZone = top + edgeZonePx
             val bottomZone = bottom - edgeZonePx
-            val activeLabel = layoutInfo.visibleItemsInfo
-                .firstOrNull { it.key == "active_label" }
-            val availableLabel = layoutInfo.visibleItemsInfo
-                .firstOrNull { it.key == "available_label" }
-            val pointerAboveActiveSection = activeLabel != null &&
-                dragPointer.y < (activeLabel.offset.y + activeLabel.size.height).toFloat()
-            val pointerBelowActiveSection = availableLabel != null &&
-                dragPointer.y >= availableLabel.offset.y.toFloat()
             val delta = when {
-                dragPointer.y < topZone && index > 0 && !pointerAboveActiveSection -> {
+                dragPointer.y < topZone && index > 0 -> {
                     val fraction = ((topZone - dragPointer.y) / edgeZonePx).coerceIn(0f, 1f)
                     -(minScrollPx + (maxScrollPx - minScrollPx) * fraction)
                 }
-                dragPointer.y > bottomZone && index < activeIds.lastIndex &&
-                    !pointerBelowActiveSection -> {
+                dragPointer.y > bottomZone && index < activeIds.lastIndex -> {
                     val fraction = ((dragPointer.y - bottomZone) / edgeZonePx).coerceIn(0f, 1f)
                     minScrollPx + (maxScrollPx - minScrollPx) * fraction
                 }
