@@ -15,14 +15,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.android.gamespace.R
 import com.android.gamespace.widget.compose.components.GameSpaceSlider
 import kotlin.math.roundToInt
+
+private const val BRIGHTNESS_HAPTIC_STEPS = 20
 
 @Composable
 fun PanelSliders(
@@ -37,6 +45,10 @@ fun PanelSliders(
     onCycleRingerMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = LocalHapticFeedback.current
+    var brightnessHapticStep by remember { mutableIntStateOf(-1) }
+    var volumeHapticStep by remember { mutableIntStateOf(-1) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -59,6 +71,11 @@ fun PanelSliders(
                 value = state.brightness,
                 onValueChange = {
                     onBrightnessDragStart()
+                    val step = (it * BRIGHTNESS_HAPTIC_STEPS).roundToInt()
+                    if (step != brightnessHapticStep) {
+                        brightnessHapticStep = step
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    }
                     onBrightnessChange(it)
                 },
                 onValueChangeFinished = onBrightnessDragEnd,
@@ -89,7 +106,12 @@ fun PanelSliders(
                 value = state.volume.toFloat(),
                 onValueChange = {
                     onVolumeDragStart()
-                    onVolumeChange(it.roundToInt())
+                    val volume = it.roundToInt()
+                    if (volume != volumeHapticStep) {
+                        volumeHapticStep = volume
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    }
+                    onVolumeChange(volume)
                 },
                 onValueChangeFinished = onVolumeDragEnd,
                 valueRange = 0f..state.volumeMax.toFloat().coerceAtLeast(1f),
