@@ -2,27 +2,32 @@ package com.android.gamespace.widget.compose.editor
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,6 +36,7 @@ import com.android.gamespace.R
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.TileLayoutModel
 import com.android.gamespace.widget.tiles.TileType
+import kotlinx.coroutines.isActive
 
 @Composable
 fun PanelTileEditor(
@@ -51,10 +57,13 @@ fun PanelTileEditor(
 
     val gridState = rememberLazyGridState()
     val haptics = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val edgeZonePx = with(density) { 64.dp.toPx() }
+    val minScrollPx = with(density) { 2.dp.toPx() }
+    val maxScrollPx = with(density) { 12.dp.toPx() }
     var draggingId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var dragOrigin by remember { mutableStateOf(Offset.Zero) }
-    var dragTouch by remember { mutableStateOf(Offset.Zero) }
+    var dragPointer by remember { mutableStateOf(Offset.Zero) }
 
     fun persist() {
         onSelectedTilesChange(activeIds)
@@ -82,6 +91,76 @@ fun PanelTileEditor(
         if (model.reset()) {
             refresh()
             persist()
+        }
+    }
+
+    fun updateDragTarget(draggedId: String, pointer: Offset) {
+        var target: LazyGridItemInfo? = null
+        for (info in gridState.layoutInfo.visibleItemsInfo) {
+            val key = info.key as? String ?: continue
+            if (!key.startsWith("active_")) continue
+            if (key == "active_$draggedId") continue
+            val insideX = pointer.x >= info.offset.x &&
+                pointer.x <= info.offset.x + info.size.width
+            val insideY = pointer.y >= info.offset.y &&
+                pointer.y <= info.offset.y + info.size.height
+            if (insideX && insideY) {
+                target = info
+                break
+            }
+        }
+        val targetId = (target?.key as? String)?.removePrefix("active_")
+        if (targetId != null) {
+            val from = activeIds.indexOf(draggedId)
+            val to = activeIds.indexOf(targetId)
+            if (from >= 0 && to >= 0 && from != to) {
+                if (model.reorder(from, to)) {
+                    refresh()
+                    dragOffset = Offset.Zero
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(draggingId) {
+        val draggedId = draggingId ?: return@LaunchedEffect
+        while (isActive) {
+            withFrameNanos { }
+            if (draggingId != draggedId) return@LaunchedEffect
+            val index = activeIds.indexOf(draggedId)
+            if (index < 0) continue
+            val layoutInfo = gridState.layoutInfo
+            val top = layoutInfo.viewportStartOffset.toFloat()
+            val bottom = layoutInfo.viewportEndOffset.toFloat()
+            val topZone = top + edgeZonePx
+            val bottomZone = bottom - edgeZonePx
+            val activeLabel = layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == "active_label" }
+            val availableLabel = layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == "available_label" }
+            val pointerAboveActiveSection = activeLabel != null &&
+                dragPointer.y < (activeLabel.offset.y + activeLabel.size.height).toFloat()
+            val pointerBelowActiveSection = availableLabel != null &&
+                dragPointer.y >= availableLabel.offset.y.toFloat()
+            val delta = when {
+                dragPointer.y < topZone && index > 0 && !pointerAboveActiveSection -> {
+                    val fraction = ((topZone - dragPointer.y) / edgeZonePx).coerceIn(0f, 1f)
+                    -(minScrollPx + (maxScrollPx - minScrollPx) * fraction)
+                }
+                dragPointer.y > bottomZone && index < activeIds.lastIndex &&
+                    !pointerBelowActiveSection -> {
+                    val fraction = ((dragPointer.y - bottomZone) / edgeZonePx).coerceIn(0f, 1f)
+                    minScrollPx + (maxScrollPx - minScrollPx) * fraction
+                }
+                else -> 0f
+            }
+            if (delta != 0f) {
+                val consumed = gridState.scrollBy(delta)
+                if (consumed != 0f && draggingId == draggedId) {
+                    dragOffset += Offset(0f, consumed)
+                    updateDragTarget(draggedId, dragPointer)
+                }
+            }
         }
     }
 
@@ -147,67 +226,30 @@ fun PanelTileEditor(
                                 if (info != null) {
                                     draggingId = type.id
                                     dragOffset = Offset.Zero
-                                    dragOrigin = Offset(
+                                    dragPointer = Offset(
                                         info.offset.x.toFloat(),
                                         info.offset.y.toFloat(),
-                                    )
-                                    dragTouch = touch
+                                    ) + touch
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
                             },
                             onDragEnd = {
                                 draggingId = null
                                 dragOffset = Offset.Zero
-                                dragOrigin = Offset.Zero
-                                dragTouch = Offset.Zero
+                                dragPointer = Offset.Zero
                                 persist()
                             },
                             onDragCancel = {
                                 draggingId = null
                                 dragOffset = Offset.Zero
-                                dragOrigin = Offset.Zero
-                                dragTouch = Offset.Zero
+                                dragPointer = Offset.Zero
                                 persist()
                             },
                             onDrag = { change, amount ->
                                 change.consume()
                                 dragOffset += amount
-                                val pointer = dragOrigin + dragTouch + dragOffset
-                                var target: androidx.compose.foundation.lazy.grid.LazyGridItemInfo? = null
-                                for (info in gridState.layoutInfo.visibleItemsInfo) {
-                                    val key = info.key as? String ?: continue
-                                    if (!key.startsWith("active_")) continue
-                                    if (key == "active_${type.id}") continue
-                                    val insideX = pointer.x >= info.offset.x &&
-                                        pointer.x <= info.offset.x + info.size.width
-                                    val insideY = pointer.y >= info.offset.y &&
-                                        pointer.y <= info.offset.y + info.size.height
-                                    if (insideX && insideY) {
-                                        target = info
-                                        break
-                                    }
-                                }
-                                val targetId = (target?.key as? String)
-                                    ?.removePrefix("active_")
-                                val found = target
-                                if (targetId != null && found != null) {
-                                    val from = activeIds.indexOf(type.id)
-                                    val to = activeIds.indexOf(targetId)
-                                    if (from >= 0 && to >= 0 && from != to) {
-                                        if (model.reorder(from, to)) {
-                                            refresh()
-                                            dragOrigin = Offset(
-                                                found.offset.x.toFloat(),
-                                                found.offset.y.toFloat(),
-                                            )
-                                            dragTouch = Offset(
-                                                found.size.width / 2f,
-                                                found.size.height / 2f,
-                                            )
-                                            dragOffset = Offset.Zero
-                                        }
-                                    }
-                                }
+                                dragPointer += amount
+                                updateDragTarget(type.id, dragPointer)
                             },
                         )
                     }
