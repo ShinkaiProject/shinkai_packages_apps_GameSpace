@@ -244,6 +244,13 @@
     <string name="gamespace_bar_auto_hide_delay_value">Hide after: %d s</string>
     <string name="gamespace_bar_auto_hide_delay_summary">Toolbar fades after this many seconds of inactivity</string>
 
+    <!-- Auto Hide Panel -->
+    <string name="gamespace_panel_auto_hide_title">Auto-hide panel</string>
+    <string name="gamespace_panel_auto_hide_summary">Close the panel automatically when not in use</string>
+    <string name="gamespace_panel_auto_hide_delay_title">Hide after</string>
+    <string name="gamespace_panel_auto_hide_delay_value">Hide after: %d s</string>
+    <string name="gamespace_panel_auto_hide_delay_summary">Panel closes after this many seconds of inactivity</string>
+
     <!-- Game Display Enhanced -->
     <string name="display_enhancer_title">Game Display Enhanced</string>
     <string name="display_enhancer_summary">Colour presets for games: Vivid, Natural, Saturated, HDR and your own</string>

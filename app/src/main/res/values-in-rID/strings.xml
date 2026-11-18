@@ -216,6 +216,13 @@
     <string name="gamespace_bar_auto_hide_delay_value">Sembunyikan Setelah: %d s</string>
     <string name="gamespace_bar_auto_hide_delay_summary">Toolbar memudar setelah sekian detik tidak ada aktivitas.</string>
 
+    <!-- Auto Hide Panel -->
+    <string name="gamespace_panel_auto_hide_title">Sembunyikan Panel secara otomatis</string>
+    <string name="gamespace_panel_auto_hide_summary">Tutup panel secara otomatis saat tidak digunakan.</string>
+    <string name="gamespace_panel_auto_hide_delay_title">Sembunyikan Setelah</string>
+    <string name="gamespace_panel_auto_hide_delay_value">Sembunyikan Setelah: %d s</string>
+    <string name="gamespace_panel_auto_hide_delay_summary">Panel tertutup setelah sekian detik tidak ada aktivitas.</string>
+
     <!-- Quick App Start -->
     <string name="quick_start_apps_title">Mulai Cepat Aplikasi</string>
     <string name="quick_start_apps_summary">Pilih aplikasi yang ingin diluncurkan dengan cepat</string>

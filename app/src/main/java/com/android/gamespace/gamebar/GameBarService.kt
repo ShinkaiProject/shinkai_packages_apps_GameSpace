@@ -100,7 +100,9 @@ class GameBarService : Hilt_GameBarService() {
 
     private val binder = GameBarBinder()
     private val autoCollapseRunnable = Runnable { barExpanded = false }
+    private val panelAutoHideRunnable = Runnable { showPanel = false }
     private val firstPaint = Runnable { initActions() }
+    private var panelEditing = false
     private var shouldClose = false
     private var isGameStarting = false
 
@@ -141,7 +143,9 @@ class GameBarService : Hilt_GameBarService() {
                     wm.addView(rootPanelView, panelLayoutParam)
                     rootPanelView.fadeIn()
                 }
+                schedulePanelAutoHide()
             } else {
+                handler.removeCallbacks(panelAutoHideRunnable)
                 if (safeAttached(::rootPanelView.isInitialized, rootPanelView)) {
                     rootPanelView.fadeOut {
                         rootPanelView.visibility = View.INVISIBLE
@@ -360,6 +364,16 @@ class GameBarService : Hilt_GameBarService() {
         handler.postDelayed(autoCollapseRunnable, appSettings.barAutoHideDelaySec * 1000L)
     }
 
+    /**
+     * (Re)starts the countdown that closes the panel. It does nothing while the tile editor is
+     * open, and a touch on the panel cancels it until the finger is lifted again.
+     */
+    private fun schedulePanelAutoHide() {
+        handler.removeCallbacks(panelAutoHideRunnable)
+        if (!showPanel || panelEditing || !appSettings.panelAutoHideEnabled) return
+        handler.postDelayed(panelAutoHideRunnable, appSettings.panelAutoHideDelaySec * 1000L)
+    }
+
     private fun setupPanelView() {
         rootPanelView = inflater.inflate(R.layout.window_panel, FrameLayout(this), false) as LinearLayout
         rootPanelView.alpha = 0f
@@ -367,6 +381,13 @@ class GameBarService : Hilt_GameBarService() {
 
         panelView = rootPanelView.findViewById(R.id.panel_view)
         panelView.alpha = appSettings.menuOpacity / 100f
+        panelView.onTouchStateChanged = { touching ->
+            if (touching) handler.removeCallbacks(panelAutoHideRunnable) else schedulePanelAutoHide()
+        }
+        panelView.onEditingChanged = { editing ->
+            panelEditing = editing
+            schedulePanelAutoHide()
+        }
 
         rootPanelView.setOnClickListener { showPanel = false }
     }

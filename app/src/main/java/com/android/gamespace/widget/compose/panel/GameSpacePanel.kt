@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,10 +33,13 @@ import com.android.gamespace.widget.compose.editor.PanelTileEditor
 fun GameSpacePanel(
     appSettings: AppSettings,
     modifier: Modifier = Modifier,
+    onEditingChange: (Boolean) -> Unit = {},
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTiles by remember { mutableStateOf(appSettings.selectedTiles) }
     var editing by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(editing) { onEditingChange(editing) }
 
     LifecycleStartEffect(appSettings) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->

@@ -3,6 +3,7 @@ package com.android.gamespace.widget
 import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -36,6 +37,12 @@ class PanelView @JvmOverloads constructor(
     private val panelLifecycleOwner = PanelLifecycleOwner()
     private val composeView = ComposeView(context)
 
+    /** Called with true when a finger goes down on the panel and false when it is lifted. */
+    var onTouchStateChanged: ((touching: Boolean) -> Unit)? = null
+
+    /** Called with true while the tile editor is shown and false when it is closed. */
+    var onEditingChanged: ((editing: Boolean) -> Unit)? = null
+
     init {
         isClickable = true
         isFocusable = true
@@ -44,7 +51,10 @@ class PanelView @JvmOverloads constructor(
         composeView.setViewTreeViewModelStoreOwner(panelLifecycleOwner)
         composeView.setContent {
             GameSpaceTheme {
-                GameSpacePanel(appSettings = appSettings)
+                GameSpacePanel(
+                    appSettings = appSettings,
+                    onEditingChange = { onEditingChanged?.invoke(it) },
+                )
             }
         }
         addView(
@@ -67,6 +77,17 @@ class PanelView @JvmOverloads constructor(
             layoutParams = params
         }
         animator.start()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            onTouchStateChanged?.invoke(true)
+        }
+        val handled = super.dispatchTouchEvent(ev)
+        if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            onTouchStateChanged?.invoke(false)
+        }
+        return handled
     }
 
     override fun onAttachedToWindow() {

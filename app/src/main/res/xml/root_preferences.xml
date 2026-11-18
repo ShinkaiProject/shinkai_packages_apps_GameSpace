@@ -111,6 +111,20 @@
             android:max="15"
             android:min="1" />
 
+        <androidx.preference.SwitchPreferenceCompat
+            android:key="gamespace_panel_auto_hide_enabled"
+            android:title="@string/gamespace_panel_auto_hide_title"
+            android:summary="@string/gamespace_panel_auto_hide_summary"
+            android:defaultValue="true" />
+
+        <com.android.settingslib.widget.SliderPreference
+            android:key="gamespace_panel_auto_hide_delay_sec"
+            android:title="@string/gamespace_panel_auto_hide_delay_title"
+            android:dependency="gamespace_panel_auto_hide_enabled"
+            android:defaultValue="5"
+            android:max="15"
+            android:min="1" />
+
     </PreferenceCategory>
 
     <PreferenceCategory

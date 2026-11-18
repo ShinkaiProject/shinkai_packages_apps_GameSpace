@@ -97,6 +97,14 @@ class AppSettings @Inject constructor(private val context: Context) {
         get() = db.getInt(KEY_BAR_AUTO_HIDE_DELAY, DEFAULT_BAR_AUTO_HIDE_DELAY_SEC)
         set(value) = db.edit().putInt(KEY_BAR_AUTO_HIDE_DELAY, value).apply()
 
+    var panelAutoHideEnabled
+        get() = db.getBoolean(KEY_PANEL_AUTO_HIDE_ENABLED, true)
+        set(value) = db.edit().putBoolean(KEY_PANEL_AUTO_HIDE_ENABLED, value).apply()
+
+    var panelAutoHideDelaySec
+        get() = db.getInt(KEY_PANEL_AUTO_HIDE_DELAY, DEFAULT_PANEL_AUTO_HIDE_DELAY_SEC)
+        set(value) = db.edit().putInt(KEY_PANEL_AUTO_HIDE_DELAY, value).apply()
+
     var selectedTiles: List<String>
         get() = db.getString(KEY_SELECTED_TILES, DEFAULT_TILES)!!.split(",")
         set(value) = db.edit().putString(KEY_SELECTED_TILES, value.joinToString(",")).apply()
@@ -139,6 +147,9 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_BAR_AUTO_HIDE_ENABLED = "gamespace_bar_auto_hide_enabled"
         const val KEY_BAR_AUTO_HIDE_DELAY = "gamespace_bar_auto_hide_delay_sec"
         const val DEFAULT_BAR_AUTO_HIDE_DELAY_SEC = 5
+        const val KEY_PANEL_AUTO_HIDE_ENABLED = "gamespace_panel_auto_hide_enabled"
+        const val KEY_PANEL_AUTO_HIDE_DELAY = "gamespace_panel_auto_hide_delay_sec"
+        const val DEFAULT_PANEL_AUTO_HIDE_DELAY_SEC = 5
         const val KEY_SELECTED_TILES = "gamespace_selected_tiles"
         const val DEFAULT_TILES = "game_mode,fps_info,fps_record,stay_awake,lock_gesture,wifi,dnd,mobile_data,airplane_mode"
         const val KEY_DISPLAY_PRESET = "gamespace_display_preset"

@@ -90,6 +90,14 @@ class SettingsFragment : Hilt_SettingsFragment() {
                 true
             }
         }
+
+        findPreference<SliderPreference>("gamespace_panel_auto_hide_delay_sec")?.also { pref ->
+            pref.title = getString(R.string.gamespace_panel_auto_hide_delay_value, pref.value)
+            pref.setOnPreferenceChangeListener { _, newValue ->
+                pref.title = getString(R.string.gamespace_panel_auto_hide_delay_value, newValue as Int)
+                true
+            }
+        }
     }
 
     override fun onResume() {
