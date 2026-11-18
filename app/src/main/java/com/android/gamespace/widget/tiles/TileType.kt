@@ -29,7 +29,8 @@ enum class TileType(
     NIGHT_LIGHT("night_light", R.string.night_light_title, R.drawable.ic_night_light),
     AUTO_SYNC("auto_sync", R.string.auto_sync_title, R.drawable.ic_sync),
     BYPASS_CHARGE("bypass_charge", R.string.bypass_charge_tile_title, R.drawable.ic_bypass_charge),
-    DANMAKU("danmaku", R.string.notification_danmaku, R.drawable.ic_danmaku);
+    DANMAKU("danmaku", R.string.notification_danmaku, R.drawable.ic_danmaku),
+    VOICE_CHANGER("voice_changer", R.string.voice_changer_tile_title, R.drawable.ic_voice_changer);
 
     companion object {
         fun fromId(id: String) = entries.find { it.id == id }

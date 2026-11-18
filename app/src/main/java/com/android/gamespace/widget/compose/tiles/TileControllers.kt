@@ -29,6 +29,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import com.android.gamespace.R
+import com.android.gamespace.audio.VoiceChanger
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.display.DisplayEnhancerActivity
 import com.android.gamespace.display.displayEnhancer
@@ -37,6 +38,11 @@ import com.android.gamespace.utils.GameModeUtils.Companion.describeGameMode
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.entryPointOf
 import com.android.gamespace.widget.tiles.TileType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -354,11 +360,53 @@ private class FlashlightTileController(
     }
 }
 
+private class VoiceChangerTileController(
+    context: Context,
+    type: TileType,
+    private val voiceChanger: VoiceChanger,
+) : BaseTileController(context, type) {
+
+    private var watchJob: Job? = null
+
+    override fun start() {
+        watchJob?.cancel()
+        watchJob = CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
+            voiceChanger.state.collect { refresh(it) }
+        }
+    }
+
+    override fun stop() {
+        watchJob?.cancel()
+        watchJob = null
+    }
+
+    override fun toggle() {
+        val next = !voiceChanger.state.value.enabled
+        voiceChanger.setEnabled(next)
+        refresh()
+    }
+
+    override fun longPress() {
+        voiceChanger.openUi()
+    }
+
+    private fun refresh(state: VoiceChanger.State = voiceChanger.state.value) {
+        val presetLabel = voiceChanger.labelOf(state.preset)
+        val summary = when {
+            !state.available -> context.getString(R.string.voice_unavailable)
+            state.enabled -> presetLabel
+            else -> context.getString(R.string.state_disabled)
+        }
+        publish(summary, state.enabled)
+    }
+}
+
 object TileControllerFactory {
     fun create(context: Context, type: TileType): TileController {
         val appSettings = context.entryPointOf<ServiceViewEntryPoint>().appSettings()
         val screenUtils by lazy { context.entryPointOf<ServiceViewEntryPoint>().screenUtils() }
         val gameSession by lazy { context.entryPointOf<ServiceViewEntryPoint>().gameSession() }
+        val voiceChanger by lazy { context.entryPointOf<ServiceViewEntryPoint>().voiceChanger() }
         return when (type) {
             TileType.GAME_MODE -> GameModeTileController(context, type)
             TileType.FPS_INFO -> settingToggle(
@@ -399,6 +447,7 @@ object TileControllerFactory {
                 context, type, appSettings, AppSettings.KEY_DANMAKU_NOTIFICATION_MODE,
                 { it.danmakuNotification }, { gameSession.setDanmakuNotification(it) },
             )
+            TileType.VOICE_CHANGER -> VoiceChangerTileController(context, type, voiceChanger)
         }
     }
 

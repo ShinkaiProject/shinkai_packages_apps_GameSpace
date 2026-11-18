@@ -30,6 +30,7 @@ import android.os.RemoteException
 import android.os.UserHandle
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
+import com.android.gamespace.audio.VoiceChanger
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
@@ -64,6 +65,9 @@ class SessionService : Hilt_SessionService() {
 
     @Inject
     lateinit var displayEnhancer: DisplayEnhancer
+
+    @Inject
+    lateinit var voiceChanger: VoiceChanger
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
     private var isRunning = false
@@ -149,6 +153,7 @@ class SessionService : Hilt_SessionService() {
 
         restoreAutoDnd()
         displayEnhancer.stopSession()
+        voiceChanger.stopSession()
         session.unregister()
         gameModeUtils.unbind()
         screenUtils.unbind()
@@ -198,6 +203,7 @@ class SessionService : Hilt_SessionService() {
                 applyGameModeConfig(app)
                 applyAutoDnd()
                 displayEnhancer.startSession()
+                voiceChanger.startSession()
                 gameBar.onGameStart()
                 screenUtils.stayAwake = appSettings.stayAwake
                 screenUtils.lockGesture = appSettings.lockGesture

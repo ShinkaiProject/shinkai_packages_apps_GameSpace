@@ -111,6 +111,21 @@ class AppSettings @Inject constructor(private val context: Context) {
         get() = db.getString(KEY_DISPLAY_CUSTOM_PRESETS, "") ?: ""
         set(value) = db.edit().putString(KEY_DISPLAY_CUSTOM_PRESETS, value).apply()
 
+    /** Whether the Voice Changer effect is applied to the microphone while gaming. */
+    var voiceChangerEnabled: Boolean
+        get() = db.getBoolean(KEY_VOICE_CHANGER_ENABLED, false)
+        set(value) = db.edit().putBoolean(KEY_VOICE_CHANGER_ENABLED, value).apply()
+
+    /** The index of the active Voice Changer preset. */
+    var voiceChangerPreset: Int
+        get() = db.getInt(KEY_VOICE_CHANGER_PRESET, 0)
+        set(value) = db.edit().putInt(KEY_VOICE_CHANGER_PRESET, value).apply()
+
+    /** The effect intensity in percent, 0..100. */
+    var voiceChangerIntensity: Int
+        get() = db.getInt(KEY_VOICE_CHANGER_INTENSITY, 100)
+        set(value) = db.edit().putInt(KEY_VOICE_CHANGER_INTENSITY, value).apply()
+
     companion object {
         const val KEY_AUTO_BRIGHTNESS_DISABLE = "gamespace_auto_brightness_disabled"
         const val KEY_3SCREENSHOT_DISABLE = "gamespace_tfgesture_disabled"
@@ -129,5 +144,8 @@ class AppSettings @Inject constructor(private val context: Context) {
         const val KEY_DISPLAY_PRESET = "gamespace_display_preset"
         const val KEY_DISPLAY_CUSTOM_PRESETS = "gamespace_display_custom_presets"
         const val DEFAULT_DISPLAY_PRESET = "standard"
+        const val KEY_VOICE_CHANGER_ENABLED = "gamespace_voice_changer_enabled"
+        const val KEY_VOICE_CHANGER_PRESET = "gamespace_voice_changer_preset"
+        const val KEY_VOICE_CHANGER_INTENSITY = "gamespace_voice_changer_intensity"
     }
 }

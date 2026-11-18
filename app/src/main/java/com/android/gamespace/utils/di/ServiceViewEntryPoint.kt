@@ -3,6 +3,7 @@ package com.android.gamespace.utils.di
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import com.android.gamespace.audio.VoiceChanger
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
@@ -22,4 +23,5 @@ interface ServiceViewEntryPoint {
     fun gameModeUtils(): GameModeUtils
     fun fpsRecorder(): FpsRecorder
     fun taskFpsMonitor(): TaskFpsMonitor
+    fun voiceChanger(): VoiceChanger
 }

@@ -37,5 +37,6 @@
         <permission name="android.permission.MANAGE_USB" />
         <permission name="android.permission.WRITE_SETTINGS" />
         <permission name="android.permission.DEVICE_POWER" />
+        <permission name="android.permission.MODIFY_DEFAULT_AUDIO_EFFECTS" />
     </privapp-permissions>
 </permissions>

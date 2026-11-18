@@ -274,4 +274,27 @@
 
    <!-- Other Features -->
    <string name="other_feature_category">Other Features</string>
+
+   <!-- Voice Changer -->
+   <string name="voice_changer_title">Voice Changer</string>
+   <string name="voice_changer_summary">Change how your voice sounds in games</string>
+   <string name="voice_changer_tile_title">Voice Changer</string>
+   <string name="voice_changer_enable">Enable</string>
+   <string name="voice_changer_intensity">Intensity: <xliff:g id="percent" example="80">%1$d</xliff:g>%%</string>
+   <string name="voice_presets_title">Presets</string>
+   <string name="voice_unavailable">Voice Changer is not available on this device</string>
+   <string name="voice_enable_failed">Voice Changer effect could not be started on the microphone</string>
+   <string name="voice_needs_mic_permission">Microphone permission is required for preview</string>
+   <string name="voice_preview_start">Preview (3s)</string>
+   <string name="voice_preview_stop">Stop preview</string>
+   <string name="voice_preset_original">Original</string>
+   <string name="voice_preset_male">Male</string>
+   <string name="voice_preset_female">Female</string>
+   <string name="voice_preset_child">Child</string>
+   <string name="voice_preset_robot">Robot</string>
+   <string name="voice_preset_deep">Deep</string>
+   <string name="voice_preset_high">High</string>
+   <string name="voice_preset_monster">Monster</string>
+   <string name="voice_preset_alien">Alien</string>
+   <string name="voice_preset_cartoon">Cartoon</string>
 </resources>

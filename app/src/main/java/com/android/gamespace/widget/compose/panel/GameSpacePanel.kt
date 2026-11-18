@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.gamespace.data.AppSettings
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.entryPointOf
 import com.android.gamespace.widget.NowPlayingController
 import com.android.gamespace.widget.compose.editor.PanelTileEditor
 
@@ -45,6 +47,11 @@ fun GameSpacePanel(
         selectedTiles = appSettings.selectedTiles
         onStopOrDispose { appSettings.unregisterOnChange(listener) }
     }
+
+    val voiceChanger = remember(context) {
+        context.entryPointOf<ServiceViewEntryPoint>().voiceChanger()
+    }
+    val voiceChangerState by voiceChanger.state.collectAsStateWithLifecycle()
 
     val systemState = remember(context) { PanelSystemState(context) }
     LifecycleStartEffect(systemState) {
@@ -78,38 +85,48 @@ fun GameSpacePanel(
                 onToggleEdit = { editing = !editing },
             )
 
-            AnimatedContent(
-                targetState = editing,
-                label = "panel-mode",
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-            ) { isEditing ->
-                if (isEditing) {
-                    PanelTileEditor(
-                        selectedTiles = selectedTiles,
-                        onSelectedTilesChange = { tiles ->
-                            selectedTiles = tiles
-                            appSettings.selectedTiles = tiles
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .heightIn(min = 240.dp, max = 360.dp),
-                    )
-                } else {
-                    PanelContent(
-                        selectedTiles = selectedTiles,
-                        controlsState = controlsState,
-                        nowPlayingState = nowPlayingState,
-                        onBrightnessChange = systemState::setBrightness,
-                        onBrightnessDragStart = systemState::beginBrightnessDrag,
-                        onBrightnessDragEnd = systemState::endBrightnessDrag,
-                        onVolumeChange = systemState::setVolume,
-                        onVolumeDragStart = systemState::beginVolumeDrag,
-                        onVolumeDragEnd = systemState::endVolumeDrag,
-                        onToggleAutoBrightness = systemState::toggleAutoBrightness,
-                        onCycleRingerMode = systemState::cycleRingerMode,
-                        nowPlaying = nowPlaying,
-                    )
+            if (voiceChangerState.uiVisible) {
+                VoiceChangerSheet(
+                    voiceChanger = voiceChanger,
+                    onDismiss = voiceChanger::closeUi,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                )
+            } else {
+                AnimatedContent(
+                    targetState = editing,
+                    label = "panel-mode",
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                ) { isEditing ->
+                    if (isEditing) {
+                        PanelTileEditor(
+                            selectedTiles = selectedTiles,
+                            onSelectedTilesChange = { tiles ->
+                                selectedTiles = tiles
+                                appSettings.selectedTiles = tiles
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .heightIn(min = 240.dp, max = 360.dp),
+                        )
+                    } else {
+                        PanelContent(
+                            selectedTiles = selectedTiles,
+                            controlsState = controlsState,
+                            nowPlayingState = nowPlayingState,
+                            onBrightnessChange = systemState::setBrightness,
+                            onBrightnessDragStart = systemState::beginBrightnessDrag,
+                            onBrightnessDragEnd = systemState::endBrightnessDrag,
+                            onVolumeChange = systemState::setVolume,
+                            onVolumeDragStart = systemState::beginVolumeDrag,
+                            onVolumeDragEnd = systemState::endVolumeDrag,
+                            onToggleAutoBrightness = systemState::toggleAutoBrightness,
+                            onCycleRingerMode = systemState::cycleRingerMode,
+                            nowPlaying = nowPlaying,
+                        )
+                    }
                 }
             }
         }

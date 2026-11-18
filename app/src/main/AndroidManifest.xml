@@ -42,6 +42,10 @@
     <!-- Required for Volume Slider And Brightness -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- System Voice Changer input effect -->
+    <uses-permission android:name="android.permission.MODIFY_DEFAULT_AUDIO_EFFECTS" />
+    <!-- Only needed for the optional 3 second preview -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
