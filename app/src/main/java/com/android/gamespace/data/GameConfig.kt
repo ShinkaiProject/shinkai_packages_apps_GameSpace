@@ -22,32 +22,47 @@ import java.util.Locale
 /**
  * data class for setting up the Game Mode API Intervention
  */
-data class GameConfig(val mode: Int, val downscaleFactor: Float, val useAngle: Boolean = false) {
-    override fun toString(): String =
-        hashMapOf<String, Any>().apply {
-            put("mode", mode)
-            if (downscaleFactor in MIN_DOWNSCALE..MAX_DOWNSCALE) {
-                put("downscaleFactor", "%.2f".format(Locale.US, downscaleFactor))
-            }
-            // intentionally optional as game may already using it by default
-            if (useAngle) put("useAngle", true)
-        }.map { (k, v) -> "$k=$v" }.joinToString(",")
-
+data class GameConfig(
+    val mode: Int,
+    val downscaleFactor: Float? = null,
+    val useAngle: Boolean? = null,
+) {
     companion object {
         const val NO_DOWNSCALE = 1f
         const val MIN_DOWNSCALE = 0.3f
         const val MAX_DOWNSCALE = 0.99f
 
-        fun Iterable<GameConfig>.asConfig() = this.joinToString(":") { it.toString() }
-    }
-
-    object ModeBuilder {
-        var useAngle = false
-        var downscale = NO_DOWNSCALE
-
-        fun build() = listOf(
+        fun buildModes(downscale: Float? = null, useAngle: Boolean? = null) = listOf(
             GameConfig(GameManager.GAME_MODE_PERFORMANCE, downscale, useAngle),
-            GameConfig(GameManager.GAME_MODE_BATTERY, downscale, useAngle)
+            GameConfig(GameManager.GAME_MODE_BATTERY, downscale, useAngle),
         )
+
+        fun parseModes(config: String?) = config.orEmpty().split(':').mapNotNull { mode ->
+            if ('=' !in mode) return@mapNotNull null
+            mode.split(',').filter { '=' in it }.associateTo(linkedMapOf()) { field ->
+                field.substringBefore('=').trim() to field.substringAfter('=').trim()
+            }
+        }
+
+        fun Iterable<GameConfig>.mergeWith(config: String?): String {
+            val modes = parseModes(config).toMutableList()
+            forEach { update ->
+                val fields = modes.lastOrNull { it["mode"]?.toIntOrNull() == update.mode }
+                    ?: linkedMapOf("mode" to update.mode.toString()).also { modes.add(it) }
+                update.downscaleFactor?.let { factor ->
+                    if (factor in MIN_DOWNSCALE..MAX_DOWNSCALE) {
+                        fields["downscaleFactor"] = "%.2f".format(Locale.US, factor)
+                    } else {
+                        fields.remove("downscaleFactor")
+                    }
+                }
+                update.useAngle?.let { useAngle ->
+                    if (useAngle) fields["useAngle"] = "true" else fields.remove("useAngle")
+                }
+            }
+            return modes.joinToString(":") { fields ->
+                fields.entries.joinToString(",") { (key, value) -> "$key=$value" }
+            }
+        }
     }
 }

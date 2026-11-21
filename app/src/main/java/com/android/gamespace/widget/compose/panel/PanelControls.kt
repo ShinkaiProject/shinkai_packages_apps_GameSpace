@@ -15,13 +15,16 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.android.gamespace.widget.NowPlayingController
-import com.android.gamespace.widget.NowPlayingState
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.PI
 import kotlin.math.cos
 
@@ -32,7 +35,6 @@ private val AccelerateDecelerateEasing = Easing { fraction ->
 @Composable
 fun PanelControls(
     controlsState: PanelControlsState,
-    nowPlayingState: NowPlayingState,
     onBrightnessChange: (Float) -> Unit,
     onBrightnessDragStart: () -> Unit,
     onBrightnessDragEnd: () -> Unit,
@@ -41,10 +43,17 @@ fun PanelControls(
     onVolumeDragEnd: () -> Unit,
     onToggleAutoBrightness: () -> Unit,
     onCycleRingerMode: () -> Unit,
-    nowPlaying: NowPlayingController,
     modifier: Modifier = Modifier,
 ) {
     var showMedia by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val nowPlaying = remember(context) { NowPlayingController(context) }
+    if (showMedia) {
+        LifecycleStartEffect(nowPlaying) {
+            nowPlaying.start()
+            onStopOrDispose { nowPlaying.stop() }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -75,6 +84,7 @@ fun PanelControls(
             label = "panel-controls",
         ) { media ->
             if (media) {
+                val nowPlayingState by nowPlaying.state.collectAsStateWithLifecycle()
                 com.android.gamespace.widget.compose.media.NowPlayingCard(
                     state = nowPlayingState,
                     onPlayPause = nowPlaying::togglePlayPause,

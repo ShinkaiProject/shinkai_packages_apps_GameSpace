@@ -1,9 +1,7 @@
 package com.android.gamespace.widget
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
-import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
@@ -57,16 +55,10 @@ class PanelView @JvmOverloads constructor(
     }
 
     fun updateTranslationY() {
-        val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        val targetMargin = appSettings.y
-        val animator = ValueAnimator.ofInt(params.topMargin, targetMargin)
-        animator.duration = 300L
-        animator.interpolator = DecelerateInterpolator()
-        animator.addUpdateListener { valueAnimator ->
-            params.topMargin = valueAnimator.animatedValue as Int
-            layoutParams = params
-        }
-        animator.start()
+        animate().translationY(appSettings.y.toFloat())
+            .setDuration(300L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
     override fun onAttachedToWindow() {
@@ -79,6 +71,7 @@ class PanelView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        animate().cancel()
         panelLifecycleOwner.pause()
         super.onDetachedFromWindow()
     }

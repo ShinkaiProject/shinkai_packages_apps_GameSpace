@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.LifecycleStartEffect
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val SETTING_QUICK_START_APPS = "quick_start_apps"
@@ -60,10 +62,11 @@ fun QuickStartApps(
         }
     }
 
-    val packageManager = context.packageManager
-    val visiblePackages = remember(packages) {
-        packages.filter { packageName ->
-            runCatching { packageManager.getApplicationInfo(packageName, 0) }.isSuccess
+    val visiblePackages by produceState(emptyList<String>(), packages) {
+        value = withContext(Dispatchers.IO) {
+            packages.filter { packageName ->
+                runCatching { context.packageManager.getApplicationInfo(packageName, 0) }.isSuccess
+            }
         }
     }
     if (visiblePackages.isEmpty()) return
@@ -78,6 +81,7 @@ fun QuickStartApps(
 @Composable
 private fun QuickStartAppItem(packageName: String) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val loaded by produceState<QuickStartAppIcon?>(
         initialValue = null,
         key1 = packageName,
@@ -91,7 +95,7 @@ private fun QuickStartAppItem(packageName: String) {
             .padding(horizontal = 4.dp)
             .size(36.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable { launchInFreeform(context, packageName) },
+            .clickable { scope.launch(Dispatchers.IO) { launchInFreeform(context, packageName) } },
     ) {
         loaded?.let { app ->
             Image(

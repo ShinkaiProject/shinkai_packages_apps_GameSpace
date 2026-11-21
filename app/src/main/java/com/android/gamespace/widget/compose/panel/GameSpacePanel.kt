@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.gamespace.data.AppSettings
-import com.android.gamespace.widget.NowPlayingController
 import com.android.gamespace.widget.compose.editor.PanelTileEditor
 
 @Composable
@@ -52,13 +51,6 @@ fun GameSpacePanel(
         onStopOrDispose { systemState.stop() }
     }
     val controlsState by systemState.state.collectAsStateWithLifecycle()
-
-    val nowPlaying = remember(context) { NowPlayingController(context) }
-    LifecycleStartEffect(nowPlaying) {
-        nowPlaying.start()
-        onStopOrDispose { nowPlaying.stop() }
-    }
-    val nowPlayingState by nowPlaying.state.collectAsStateWithLifecycle()
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -99,7 +91,6 @@ fun GameSpacePanel(
                     PanelContent(
                         selectedTiles = selectedTiles,
                         controlsState = controlsState,
-                        nowPlayingState = nowPlayingState,
                         onBrightnessChange = systemState::setBrightness,
                         onBrightnessDragStart = systemState::beginBrightnessDrag,
                         onBrightnessDragEnd = systemState::endBrightnessDrag,
@@ -108,7 +99,6 @@ fun GameSpacePanel(
                         onVolumeDragEnd = systemState::endVolumeDrag,
                         onToggleAutoBrightness = systemState::toggleAutoBrightness,
                         onCycleRingerMode = systemState::cycleRingerMode,
-                        nowPlaying = nowPlaying,
                     )
                 }
             }

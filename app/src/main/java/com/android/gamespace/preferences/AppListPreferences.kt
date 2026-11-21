@@ -96,7 +96,7 @@ class AppListPreferences @JvmOverloads constructor(context: Context, attrs: Attr
             apps.add(UserGame(packageName))
         }
         systemSettings.userGames = apps
-        gameModeUtils.setIntervention(packageName, GameConfig.ModeBuilder.build())
+        gameModeUtils.setIntervention(packageName, GameConfig.buildModes())
         updateAppList()
     }
 

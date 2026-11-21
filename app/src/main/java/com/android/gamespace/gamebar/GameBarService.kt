@@ -35,6 +35,7 @@ import android.widget.LinearLayout
 import androidx.core.app.NotificationCompat
 import androidx.core.view.*
 import com.android.systemui.screenrecord.IRecordingCallback
+import com.android.systemui.screenrecord.IRemoteRecording
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.R
 import com.android.gamespace.data.AppSettings
@@ -43,7 +44,6 @@ import com.android.gamespace.utils.*
 import com.android.gamespace.widget.MenuSwitcher
 import com.android.gamespace.widget.PanelView
 import javax.inject.Inject
-import kotlin.reflect.KProperty0
 import android.os.UserHandle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
@@ -101,8 +101,12 @@ class GameBarService : Hilt_GameBarService() {
     private val binder = GameBarBinder()
     private val autoCollapseRunnable = Runnable { barExpanded = false }
     private val firstPaint = Runnable { initActions() }
-    private var shouldClose = false
-    private var isGameStarting = false
+    private var gameActive = false
+    private var remoteRecorder: IRemoteRecording? = null
+    private val screenRecordingCallback = object : IRecordingCallback.Stub() {
+        override fun onRecordingStart() = updateRecordingButton(true)
+        override fun onRecordingEnd() = updateRecordingButton(false)
+    }
 
     private val recordingListener = object : FpsRecorder.Listener {
         override fun onStateChanged(recording: Boolean) {
@@ -130,6 +134,7 @@ class GameBarService : Hilt_GameBarService() {
 
     private var showPanel = false
         set(value) {
+            if (field == value) return
             field = value
             if (value) {
                 handler.removeCallbacks(autoCollapseRunnable)
@@ -137,17 +142,18 @@ class GameBarService : Hilt_GameBarService() {
                     setupPanelView()
                 }
                 updatePanelGravity()
-                if (!rootPanelView.isAttachedToWindow) {
-                    wm.addView(rootPanelView, panelLayoutParam)
-                    rootPanelView.fadeIn()
-                }
+                if (!rootPanelView.isAttachedToWindow) wm.addView(rootPanelView, panelLayoutParam)
+                rootPanelView.animate().cancel()
+                rootPanelView.fadeIn()
             } else {
-                if (safeAttached(::rootPanelView.isInitialized, rootPanelView)) {
+                if (::rootPanelView.isInitialized && rootPanelView.isAttachedToWindow) {
                     rootPanelView.fadeOut {
                         rootPanelView.visibility = View.INVISIBLE
                         handler.postDelayed({
                             runCatching {
-                                wm.removeView(rootPanelView)
+                                if (!showPanel && rootPanelView.isAttachedToWindow) {
+                                    wm.removeViewImmediate(rootPanelView)
+                                }
                             }.onFailure { it.printStackTrace() }
                         }, 50)
                     }
@@ -164,7 +170,6 @@ class GameBarService : Hilt_GameBarService() {
         menuSwitcher = rootBarView.findViewById(R.id.action_menu_switcher)
         applyOpacity()
         updateScreenMetrics()
-        danmakuService.init()
         menuSwitcher.isRecording = fpsRecorder.isRecording
         fpsRecorder.addListener(recordingListener)
     }
@@ -219,15 +224,15 @@ class GameBarService : Hilt_GameBarService() {
     }
 
     override fun onDestroy() {
-        onGameLeave()
+        if (gameActive) onGameLeave()
         fpsRecorder.removeListener(recordingListener)
-        danmakuService.destroy()
         super.onDestroy()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         updateScreenMetrics()
+        if (!gameActive) return
         if (!rootBarView.isVisible) {
             handler.removeCallbacks(firstPaint)
             handler.postDelayed({
@@ -241,46 +246,44 @@ class GameBarService : Hilt_GameBarService() {
     }
 
     fun onGameStart() {
-        if (isGameStarting) return
-        isGameStarting = true
-
-        handler.post {
-            if (!::rootBarView.isInitialized) return@post
-            if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
-                isGameStarting = false
-                return@post
-            }
-
-            shouldClose = false
-            rootBarView.isVisible = false
-            rootBarView.alpha = 0f
-            wm.addView(rootBarView, barLayoutParam)
-            handler.postDelayed(firstPaint, 500)
-            startForegroundService()
-            isGameStarting = false
-        }
+        if (gameActive) return
+        gameActive = true
+        startForegroundService()
+        danmakuService.init()
+        rootBarView.isVisible = false
+        rootBarView.alpha = 0f
+        wm.addView(rootBarView, barLayoutParam)
+        handler.postDelayed(firstPaint, 500)
     }
 
-    fun onGameLeave() {
-        // The game is going away: finish and save any running FPS recording right now.
-        fpsRecorder.stop(blocking = true)
-        shouldClose = true
-        handler.removeCallbacksAndMessages(null)
-
-        runCatching {
-            if (safeAttached(::rootPanelView.isInitialized, rootPanelView)) {
-                wm.removeViewImmediate(rootPanelView)
+    fun onGameLeave(onSaved: () -> Unit = {}) {
+        if (gameActive) {
+            gameActive = false
+            remoteRecorder?.let { recorder ->
+                runCatching { recorder.removeRecordingCallback(screenRecordingCallback) }
             }
-        }
+            remoteRecorder = null
+            danmakuService.destroy()
 
-        runCatching {
-            if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
-                wm.removeViewImmediate(rootBarView)
+            if (::rootPanelView.isInitialized) {
+                rootPanelView.animate().cancel()
+                if (rootPanelView.isAttachedToWindow) {
+                    runCatching { wm.removeViewImmediate(rootPanelView) }
+                }
+                rootPanelView.visibility = View.INVISIBLE
             }
+            showPanel = false
+            rootBarView.animate().cancel()
+            if (rootBarView.isAttachedToWindow) runCatching { wm.removeViewImmediate(rootBarView) }
+            handler.removeCallbacksAndMessages(null)
         }
-
-        stopForeground(true)
-        stopSelf()
+        fpsRecorder.stop {
+            if (!gameActive) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+            onSaved()
+        }
     }
 
     private fun updateLayout(update: WindowManager.LayoutParams.() -> Unit = {}) {
@@ -291,7 +294,7 @@ class GameBarService : Hilt_GameBarService() {
     }
 
     private fun initActions() {
-        if (shouldClose) return
+        if (!gameActive) return
         rootBarView.fadeIn()
         barExpanded = false
         barLayoutParam.x = appSettings.x
@@ -349,7 +352,7 @@ class GameBarService : Hilt_GameBarService() {
         updateContainerGaps()
         menuSwitcher.showFps = if (barExpanded) false else appSettings.showFps
         menuSwitcher.updateIconState(barExpanded, barLayoutParam.x)
-        if (safeAttached(::rootBarView.isInitialized, rootBarView)) {
+        if (rootBarView.isAttachedToWindow) {
             wm.updateViewLayout(rootBarView, barLayoutParam)
         }
     }
@@ -468,15 +471,16 @@ class GameBarService : Hilt_GameBarService() {
             return
         }
 
-        recorder.addRecordingCallback(object : IRecordingCallback.Stub() {
-            override fun onRecordingStart() {
-                handler.post { actionRecorder.isSelected = true }
+        actionRecorder.isVisible = true
+        actionRecorder.isSelected = recorder.isRecording
+        if (remoteRecorder != recorder) {
+            remoteRecorder?.let { runCatching { it.removeRecordingCallback(screenRecordingCallback) } }
+            remoteRecorder = null
+            runCatching {
+                recorder.addRecordingCallback(screenRecordingCallback)
+                remoteRecorder = recorder
             }
-
-            override fun onRecordingEnd() {
-                handler.post { actionRecorder.isSelected = false }
-            }
-        })
+        }
 
         actionRecorder.setOnClickListener {
             if (recorder.isStarting) return@setOnClickListener
@@ -501,11 +505,12 @@ class GameBarService : Hilt_GameBarService() {
         }
     }
     
-    fun <T : View> safeAttached(initialized: Boolean, view: T): Boolean {
-        if (!initialized) {
-            return false
+    private fun updateRecordingButton(recording: Boolean) {
+        handler.post {
+            if (gameActive) {
+                rootBarView.findViewById<ImageButton>(R.id.action_record).isSelected = recording
+            }
         }
-        return view.isAttachedToWindow
     }
 
     companion object {

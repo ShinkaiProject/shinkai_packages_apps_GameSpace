@@ -78,11 +78,15 @@ class ScreenUtils @Inject constructor(private val context: Context) {
     }
 
     fun unbind() {
-        wakelock?.takeIf { it.isHeld }?.release()
         if (isRecorderBound) {
             context.unbindService(recorderConnection)
+            isRecorderBound = false
         }
         remoteRecording = null
+    }
+
+    fun resetSession() {
+        stayAwake = false
         if (isGestureLocked) {
             Settings.System.putInt(context.contentResolver,
                     "lock_gesture_status", 0)
@@ -135,10 +139,13 @@ class ScreenUtils @Inject constructor(private val context: Context) {
             UserHandle.USER_CURRENT
         ) == 1
 
-        if (!autoBypassEnabled) return
+        val bypassProperty = "persist.sys.battery_health_bypass_enabled"
+        if (!autoBypassEnabled && (enable || !SystemProperties.getBoolean(bypassProperty, false))) {
+            return
+        }
 
         SystemProperties.set(
-            "persist.sys.battery_health_bypass_enabled",
+            bypassProperty,
             if (enable) "true" else "false"
         )
 

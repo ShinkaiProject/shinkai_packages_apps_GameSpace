@@ -13,8 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import com.android.gamespace.widget.NowPlayingController
-import com.android.gamespace.widget.NowPlayingState
 import com.android.gamespace.widget.compose.memory.MemoryUsageIndicator
 import com.android.gamespace.widget.compose.pager.GameSpaceTilePager
 import com.android.gamespace.widget.compose.quickstart.QuickStartApps
@@ -23,7 +21,6 @@ import com.android.gamespace.widget.compose.quickstart.QuickStartApps
 fun PanelContent(
     selectedTiles: List<String>,
     controlsState: PanelControlsState,
-    nowPlayingState: NowPlayingState,
     onBrightnessChange: (Float) -> Unit,
     onBrightnessDragStart: () -> Unit,
     onBrightnessDragEnd: () -> Unit,
@@ -32,7 +29,6 @@ fun PanelContent(
     onVolumeDragEnd: () -> Unit,
     onToggleAutoBrightness: () -> Unit,
     onCycleRingerMode: () -> Unit,
-    nowPlaying: NowPlayingController,
     modifier: Modifier = Modifier,
 ) {
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -43,7 +39,6 @@ fun PanelContent(
     ) {
         PanelControls(
             controlsState = controlsState,
-            nowPlayingState = nowPlayingState,
             onBrightnessChange = onBrightnessChange,
             onBrightnessDragStart = onBrightnessDragStart,
             onBrightnessDragEnd = onBrightnessDragEnd,
@@ -52,7 +47,6 @@ fun PanelContent(
             onVolumeDragEnd = onVolumeDragEnd,
             onToggleAutoBrightness = onToggleAutoBrightness,
             onCycleRingerMode = onCycleRingerMode,
-            nowPlaying = nowPlaying,
         )
 
         QuickStartApps(

@@ -37,6 +37,11 @@ import com.android.gamespace.utils.GameModeUtils.Companion.describeGameMode
 import com.android.gamespace.utils.di.ServiceViewEntryPoint
 import com.android.gamespace.utils.entryPointOf
 import com.android.gamespace.widget.tiles.TileType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -131,25 +136,22 @@ private class GameModeTileController(
     private val gameModeUtils by lazy { context.entryPointOf<ServiceViewEntryPoint>().gameModeUtils() }
     private val systemSettings by lazy { context.entryPointOf<ServiceViewEntryPoint>().systemSettings() }
 
-    private val modes = listOf(
-        GameManager.GAME_MODE_STANDARD,
-        GameManager.GAME_MODE_PERFORMANCE,
-        GameManager.GAME_MODE_BATTERY,
-    )
-
     override fun start() = refresh()
 
     override fun toggle() {
-        val current = gameModeUtils.activeGame?.mode ?: GameManager.GAME_MODE_STANDARD
-        val index = modes.indexOf(current)
-        val next = modes[if (index == modes.lastIndex) 0 else index + 1]
+        val packageName = gameModeUtils.activeGame?.packageName ?: return
+        val modes = gameModeUtils.availableGameModes(packageName)
+        if (modes.isEmpty()) return
+        val current = gameModeUtils.effectiveGameMode(packageName)
+        val next = modes[(modes.indexOf(current) + 1) % modes.size]
         gameModeUtils.setActiveGameMode(systemSettings, next)
         refresh()
     }
 
     private fun refresh() {
-        val mode = gameModeUtils.activeGame?.mode ?: GameManager.GAME_MODE_STANDARD
-        publish(context.describeGameMode(mode), mode != GameManager.GAME_MODE_STANDARD)
+        val mode = gameModeUtils.activeGame?.packageName?.let(gameModeUtils::effectiveGameMode)
+            ?: GameManager.GAME_MODE_UNSUPPORTED
+        publish(context.describeGameMode(mode), mode > GameManager.GAME_MODE_STANDARD)
     }
 }
 
@@ -304,6 +306,8 @@ private class FlashlightTileController(
 
     private var torchCameraId: String? = null
     private var torchEnabled = false
+    private var discoveryJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.Main.immediate)
 
     private val torchCallback = object : CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
@@ -315,35 +319,44 @@ private class FlashlightTileController(
     }
 
     override fun start() {
-        torchCameraId = findTorchCameraId()
-        refresh()
-        runCatching {
-            cameraManager?.registerTorchCallback(torchCallback, Handler(Looper.getMainLooper()))
+        discoveryJob?.cancel()
+        discoveryJob = scope.launch {
+            torchCameraId = withContext(Dispatchers.IO) { findTorchCameraId() }
+            refresh()
+            if (torchCameraId != null) {
+                runCatching {
+                    cameraManager?.registerTorchCallback(torchCallback, Handler(Looper.getMainLooper()))
+                }
+            }
         }
     }
 
     override fun stop() {
+        discoveryJob?.cancel()
+        discoveryJob = null
+        torchCameraId = null
         runCatching { cameraManager?.unregisterTorchCallback(torchCallback) }
     }
 
     override fun toggle() {
-        val cameraId = torchCameraId ?: findTorchCameraId().also { torchCameraId = it } ?: return
+        val cameraId = torchCameraId ?: return
         val target = !torchEnabled
         torchEnabled = target
         refresh()
-        Thread {
+        scope.launch(Dispatchers.IO) {
             runCatching { cameraManager?.setTorchMode(cameraId, target) }
-        }.start()
+        }
     }
 
     private fun findTorchCameraId(): String? = runCatching {
         val manager = cameraManager ?: return null
-        manager.cameraIdList.firstOrNull { id ->
+        val cameraIds = manager.cameraIdList
+        cameraIds.firstOrNull { id ->
             val chars = manager.getCameraCharacteristics(id)
             chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true &&
                 chars.get(CameraCharacteristics.LENS_FACING) ==
                 CameraCharacteristics.LENS_FACING_BACK
-        } ?: manager.cameraIdList.firstOrNull { id ->
+        } ?: cameraIds.firstOrNull { id ->
             manager.getCameraCharacteristics(id)
                 .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
         }
@@ -713,13 +726,14 @@ object TileControllerFactory {
                 ) == 1
             },
             write = { enabled ->
+                if (!enabled) runCatching { screenUtils.bypassCharge(false) }
                 Settings.System.putIntForUser(
                     context.contentResolver,
                     KEY_BYPASS_CHARGE,
                     if (enabled) 1 else 0,
                     UserHandle.USER_CURRENT,
                 )
-                runCatching { screenUtils.bypassCharge(enabled) }
+                if (enabled) runCatching { screenUtils.bypassCharge(true) }
             },
             summary = { enabledSummary(context, it) },
             watcher = { onChange ->

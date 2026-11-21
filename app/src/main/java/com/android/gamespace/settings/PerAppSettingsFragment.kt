@@ -125,19 +125,14 @@ class PerAppSettingsFragment : Hilt_PerAppSettingsFragment(),
                 return true
             }
             PREF_USE_ANGLE -> {
-                val newModes = GameConfig.ModeBuilder.apply {
-                    useAngle = newValue as Boolean
-                    downscale = gameModeUtils.downscaleFactorOf(gameInfo.packageName)
-                }.build()
+                val newModes = GameConfig.buildModes(useAngle = newValue as Boolean)
                 gameModeUtils.setIntervention(gameInfo.packageName, newModes)
                 forceStop(gameInfo.packageName)
                 return true
             }
             PREF_DOWNSCALE -> {
-                val newModes = GameConfig.ModeBuilder.apply {
-                    useAngle = gameModeUtils.isAngleUsed(gameInfo.packageName)
-                    downscale = (newValue as String).toFloatOrNull() ?: GameConfig.NO_DOWNSCALE
-                }.build()
+                val downscale = (newValue as String).toFloatOrNull() ?: GameConfig.NO_DOWNSCALE
+                val newModes = GameConfig.buildModes(downscale = downscale)
                 gameModeUtils.setIntervention(gameInfo.packageName, newModes)
                 forceStop(gameInfo.packageName)
                 return true

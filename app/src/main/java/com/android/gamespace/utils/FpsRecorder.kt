@@ -15,6 +15,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import com.android.gamespace.R
 import com.android.gamespace.data.FpsCsv
+import androidx.annotation.MainThread
 import com.android.gamespace.data.FpsSamples
 import com.android.gamespace.data.FpsSessionStore
 import com.android.gamespace.data.FpsStats
@@ -88,6 +89,8 @@ class FpsRecorder @Inject constructor(
     // Being single threaded it also keeps the sampler's state consistent.
     private val sampleExecutor by lazy { backgroundExecutor("FpsRecorder-sample") }
     private val saver by lazy { backgroundExecutor("FpsRecorder-save") }
+    private var pendingSaves = 0
+    private val saveCallbacks = mutableListOf<() -> Unit>()
 
     @Volatile
     private var session: Session? = null
@@ -117,6 +120,7 @@ class FpsRecorder @Inject constructor(
      * Starts recording the FPS of the currently focused task (the game).
      * @return true if a recording is running after the call.
      */
+    @MainThread
     fun start(): Boolean {
         if (isRecording) return true
 
@@ -151,6 +155,7 @@ class FpsRecorder @Inject constructor(
         if (!fpsMonitor.addListener(listener)) {
             Log.e(TAG, "Unable to receive task FPS reports")
             synchronized(lock) { session = null }
+            fpsMonitor.removeListener(listener)
             toast(R.string.fps_record_failed)
             return false
         }
@@ -159,25 +164,38 @@ class FpsRecorder @Inject constructor(
         return true
     }
 
-    /**
-     * Stops recording and saves the session.
-     *
-     * @param blocking write the files on the calling thread. Use it when the process may go away
-     * right after the call (e.g. the game session is being torn down).
-     */
-    fun stop(blocking: Boolean = false) {
-        val finished = synchronized(lock) { session.also { session = null } } ?: return
-
-        finished.fpsListener?.let { fpsMonitor.removeListener(it) }
-        dispatchState(false)
-
-        if (finished.samples.isEmpty()) {
-            toast(R.string.fps_record_empty)
-            return
+    /** Stops recording. The callback runs on the main thread when all pending exports finish. */
+    @MainThread
+    fun stop(onSaved: (() -> Unit)? = null) {
+        val finished = synchronized(lock) { session.also { session = null } }
+        if (finished != null) {
+            finished.fpsListener?.let { fpsMonitor.removeListener(it) }
+            dispatchState(false)
+            if (finished.samples.isEmpty()) {
+                toast(R.string.fps_record_empty)
+            } else {
+                pendingSaves++
+                saver.execute {
+                    try {
+                        save(finished)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unable to save FPS recording", e)
+                        toast(R.string.fps_record_save_failed)
+                    } finally {
+                        mainHandler.post {
+                            if (--pendingSaves == 0) {
+                                val callbacks = saveCallbacks.toList()
+                                saveCallbacks.clear()
+                                callbacks.forEach { it() }
+                            }
+                        }
+                    }
+                }
+            }
         }
-
-        val work = Runnable { save(finished) }
-        if (blocking) work.run() else saver.execute(work)
+        if (onSaved != null) {
+            if (pendingSaves == 0) onSaved() else saveCallbacks.add(onSaved)
+        }
     }
 
     /** @param receivedAt when the report arrived; sampling the sensors may lag behind it a little. */
@@ -204,7 +222,7 @@ class FpsRecorder @Inject constructor(
         if (sampleListeners.isNotEmpty()) {
             mainHandler.post { sampleListeners.forEach { it.onSample(elapsed, fps) } }
         }
-        if (limitReached) mainHandler.post { stop() }
+        if (limitReached) mainHandler.post { if (session === s) stop() }
     }
 
     private fun dispatchState(recording: Boolean) {

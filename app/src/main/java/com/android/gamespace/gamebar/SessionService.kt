@@ -16,9 +16,8 @@
  */
 package com.android.gamespace.gamebar
 
-import android.annotation.SuppressLint
 import android.app.ActivityTaskManager
-import android.app.GameManager
+import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.app.Service
 import android.content.ComponentName
@@ -26,19 +25,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.os.RemoteException
+import android.os.PowerManager
 import android.os.UserHandle
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.GameSession
 import com.android.gamespace.data.SystemSettings
+import com.android.gamespace.data.UserGame
 import com.android.gamespace.display.DisplayEnhancer
 import com.android.gamespace.utils.GameModeUtils
 import com.android.gamespace.utils.ScreenUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -66,96 +67,120 @@ class SessionService : Hilt_SessionService() {
     lateinit var displayEnhancer: DisplayEnhancer
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
-    private var isRunning = false
-    
-    private var tarketPkgName = ""
+    private var modeJob: Job? = null
+    private var requestedPackage: String? = null
+    private var activePackage: String? = null
+    private var startId = 0
+    private var pendingLeaves = 0
+    private var barBound = false
+    private var gameBar: GameBarService? = null
+    private var screenBound = false
 
     private val gameBarConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            isBarConnected = true
             gameBar = (service as GameBarService.GameBarBinder).getService()
-            onGameBarReady()
+            updateGame()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            isBarConnected = false
+            gameBar = null
             stopSelf()
         }
     }
-
-    private lateinit var gameBar: GameBarService
-    private lateinit var gameManager: GameManager
-    private var isBarConnected = false
-    private var commandIntent: Intent? = null
 
     private var dndEnabledByUs = false
     private var previousDndFilter = NotificationManager.INTERRUPTION_FILTER_ALL
 
-    @SuppressLint("WrongConstant")
-    override fun onCreate() {
-        super.onCreate()
-        isRunning = true
-        alive = true
-        try {
-            screenUtils.bind()
-        } catch (e: RemoteException) {
-            Log.e(TAG, "Error binding ScreenUtils: $e")
-        }
-        gameManager = getSystemService(Context.GAME_SERVICE) as GameManager
-        gameModeUtils.bind(gameManager)
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!isRunning) {
-            Log.w(TAG, "Service is not properly initialized. Stopping.")
-            stopSelf()
-            return START_NOT_STICKY
+        this.startId = startId
+        requestedPackage = when (intent?.action) {
+            START -> intent.getStringExtra(EXTRA_PACKAGE_NAME)
+            STOP -> null
+            null -> focusedGame()
+            else -> requestedPackage
         }
-
-        intent?.let { commandIntent = it }
-        super.onStartCommand(intent, flags, startId)
-
-        if (intent == null && flags == 0 && startId > 1) {
-            return tryStartFromDeath()
-        }
-
-        when (intent?.action) {
-            START -> startGameBar()
-            STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
-        }
-        return START_STICKY
+        updateGame()
+        return if (requestedPackage == null) START_NOT_STICKY else START_STICKY
     }
 
-    private fun startGameBar() {
-        if (isBarConnected) {
-            Log.i(TAG, "GameBar is already connected.")
+    private fun updateGame() {
+        val next = requestedPackage
+        if (next == activePackage && next != null) return
+        endGame()
+        if (next == null) {
+            stopIfIdle()
             return
         }
-        Intent(this, GameBarService::class.java).apply {
-            bindServiceAsUser(this, gameBarConnection, Context.BIND_AUTO_CREATE, UserHandle.CURRENT)
+
+        val bar = gameBar
+        if (bar == null) {
+            if (!barBound) {
+                barBound = bindServiceAsUser(
+                    Intent(this, GameBarService::class.java), gameBarConnection,
+                    Context.BIND_AUTO_CREATE, UserHandle.CURRENT,
+                )
+                if (!barBound) {
+                    requestedPackage = null
+                    stopIfIdle()
+                }
+            }
+            return
         }
+
+        activePackage = next
+        try {
+            if (!screenBound) {
+                screenUtils.bind()
+                screenBound = true
+            }
+            session.unregister()
+            session.register(next)
+            applyGameModeConfig(next)
+            applyAutoDnd()
+            displayEnhancer.startSession()
+            screenUtils.stayAwake = appSettings.stayAwake
+            screenUtils.lockGesture = appSettings.lockGesture
+            screenUtils.bypassCharge(true)
+            callListener.init()
+            bar.onGameStart()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting GameSpace session for $next", e)
+            requestedPackage = null
+            endGame()
+            stopIfIdle()
+        }
+    }
+
+    private fun endGame() {
+        if (activePackage == null) return
+        activePackage = null
+        modeJob?.cancel()
+        gameModeUtils.activeGame = null
+        gameBar?.let { bar ->
+            pendingLeaves++
+            bar.onGameLeave {
+                pendingLeaves--
+                stopIfIdle()
+            }
+        }
+        restoreAutoDnd()
+        displayEnhancer.stopSession()
+        session.unregister()
+        if (screenBound) screenUtils.resetSession()
+        callListener.destroy()
+    }
+
+    private fun stopIfIdle() {
+        if (requestedPackage == null && pendingLeaves == 0) stopSelf(startId)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        if (isBarConnected) {
-            gameBar.onGameLeave()
-            unbindService(gameBarConnection)
-        }
-
-        restoreAutoDnd()
-        displayEnhancer.stopSession()
-        session.unregister()
-        gameModeUtils.unbind()
-        screenUtils.unbind()
-        callListener.destroy()
-
-        isRunning = false
-        alive = false
+        endGame()
+        if (barBound) unbindService(gameBarConnection)
+        if (screenBound) screenUtils.unbind()
+        scope.cancel()
         super.onDestroy()
     }
 
@@ -178,85 +203,19 @@ class SessionService : Hilt_SessionService() {
         nm.setInterruptionFilter(previousDndFilter)
     }
 
-    private fun onGameBarReady() {
-        if (!isBarConnected) {
-            Log.w(TAG, "GameBar is not connected. Retrying connection.")
-            startGameBar()
-            return
-        }
-
-        try {
-            commandIntent?.let { intent ->
-                val app = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: run {
-                    Log.e(TAG, "App package name missing in intent. Stopping service.")
-                    stopSelf()
-                    return
-                }
-                tarketPkgName = app
-                session.unregister()
-                session.register(app)
-                applyGameModeConfig(app)
-                applyAutoDnd()
-                displayEnhancer.startSession()
-                gameBar.onGameStart()
-                screenUtils.stayAwake = appSettings.stayAwake
-                screenUtils.lockGesture = appSettings.lockGesture
-                screenUtils.bypassCharge(true)
-            } ?: run {
-                Log.e(TAG, "Command Intent is uninitialized. Stopping service.")
-                stopSelf()
-            }
-
-            callListener.init()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during GameBar initialization: $e")
-            stopSelf()
-        }
-    }
-
-    private fun tryStartFromDeath(): Int {
-        if (isBarConnected) {
-            return START_STICKY
-        }
-
-        if (tarketPkgName.isBlank()) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        val focusedApp = ActivityTaskManager.getService()
-            ?.focusedRootTaskInfo
-            ?.topActivity
-            ?.packageName
-
-        if (focusedApp.isNullOrBlank()) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        if (!settings.userGames.any { it.packageName == focusedApp }) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        if (focusedApp != tarketPkgName) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        commandIntent = Intent(START).putExtra(EXTRA_PACKAGE_NAME, tarketPkgName)
-        startGameBar()
-        return START_STICKY
+    private fun focusedGame(): String? {
+        if (getSystemService(PowerManager::class.java)?.isInteractive != true ||
+            getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true) return null
+        val focused = ActivityTaskManager.getService()?.focusedRootTaskInfo?.topActivity?.packageName
+        return focused?.takeIf { pkg -> settings.userGames.any { it.packageName == pkg } }
     }
 
     private fun applyGameModeConfig(app: String) {
-        val preferred = settings.userGames.firstOrNull { it.packageName == app }
-            ?.mode ?: GameModeUtils.defaultPreferredMode
-        gameModeUtils.activeGame = settings.userGames.firstOrNull { it.packageName == app }
-        scope.launch {
-            gameManager.getAvailableGameModes(app)
-                .takeIf { it.contains(preferred) }
-                ?.run { gameManager.setGameMode(app, preferred) }
+        val game = settings.userGames.firstOrNull { it.packageName == app } ?: UserGame(app)
+        gameModeUtils.activeGame = game
+        modeJob = scope.launch {
+            runCatching { gameModeUtils.applyGameModeFor(app, game.mode) }
+                .onFailure { Log.e(TAG, "Error applying Game Mode for $app", it) }
         }
     }
 
@@ -266,32 +225,16 @@ class SessionService : Hilt_SessionService() {
         const val STOP = "game_stop"
         const val EXTRA_PACKAGE_NAME = "package_name"
 
-        /**
-         * Whether the service exists. It is only ever in this process, so it can be kept here:
-         * asking the activity manager for the list of all running services, which is what this
-         * used to do, copies every service of the system through binder, at the start and the end
-         * of each game.
-         */
-        @Volatile
-        private var alive = false
+        fun start(context: Context, app: String) {
+            val intent = Intent(context, SessionService::class.java)
+                .setAction(START)
+                .putExtra(EXTRA_PACKAGE_NAME, app)
+            context.startServiceAsUser(intent, UserHandle.CURRENT)
+        }
 
-        fun start(context: Context, app: String) = Intent(context, SessionService::class.java)
-            .apply {
-                action = START
-                putExtra(EXTRA_PACKAGE_NAME, app)
-            }
-            .takeIf { !alive }
-            ?.run { context.startServiceAsUser(this, UserHandle.CURRENT) }
-
-        fun stop(context: Context) = Intent(context, SessionService::class.java)
-            .apply { action = STOP }
-            .run {
-                // The system forgets a service the moment it is asked to stop it, and onDestroy
-                // only follows later. Without this, a game that starts right after another one
-                // has stopped could still find the old service "alive" and not start a new one.
-                // Stopping one that is not running does nothing, so there is nothing to check.
-                alive = false
-                context.stopServiceAsUser(this, UserHandle.CURRENT)
-            }
+        fun stop(context: Context) {
+            val intent = Intent(context, SessionService::class.java).setAction(STOP)
+            context.startServiceAsUser(intent, UserHandle.CURRENT)
+        }
     }
 }

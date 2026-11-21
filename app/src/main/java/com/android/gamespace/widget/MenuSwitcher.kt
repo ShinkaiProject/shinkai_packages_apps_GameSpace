@@ -32,7 +32,7 @@ class MenuSwitcher @JvmOverloads constructor(
     private val appSettings by lazy { context.entryPointOf<ServiceViewEntryPoint>().appSettings() }
     private val scope = CoroutineScope(Job() + Dispatchers.Main)
 
-    // Shared with the FPS recorder: the system reports FPS to one listener per task only.
+    // Shares the task callback with the FPS recorder.
     private val fpsMonitor by lazy { context.entryPointOf<ServiceViewEntryPoint>().taskFpsMonitor() }
 
     private val fpsListener = TaskFpsMonitor.Listener { fps ->

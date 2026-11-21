@@ -27,29 +27,24 @@ import android.provider.DeviceConfig
 import android.provider.Settings
 import com.android.gamespace.R
 import com.android.gamespace.data.GameConfig
-import com.android.gamespace.data.GameConfig.Companion.asConfig
+import com.android.gamespace.data.GameConfig.Companion.mergeWith
 import com.android.gamespace.data.SystemSettings
 import com.android.gamespace.data.UserGame
 import javax.inject.Inject
 
 class GameModeUtils @Inject constructor(private val context: Context) {
 
-    private var manager: GameManager? = null
+    private val manager by lazy { context.getSystemService(GameManager::class.java) }
     var activeGame: UserGame? = null
-
-    fun bind(manager: GameManager) {
-        this.manager = manager
-    }
-
-    fun unbind() {
-        manager = null
-    }
 
     fun setIntervention(packageName: String, modeData: List<GameConfig>? = null) {
         // Separate key and value by ;; to identify them from
         // com.android.server.app.GameManagerService for the device_config property.
         // Example: com.libremobileos.game;;mode=2,downscaleFactor=0.7:mode=3,downscaleFactor=0.8
-        val configValue = "${packageName};;${modeData?.asConfig()}"
+        val config = modeData?.mergeWith(
+            DeviceConfig.getString(DeviceConfig.NAMESPACE_GAME_OVERLAY, packageName, null),
+        ).orEmpty()
+        val configValue = "$packageName;;$config"
         Settings.Secure.putString(
                 context.contentResolver,
                 Settings.Secure.GAME_OVERLAY,
@@ -59,11 +54,11 @@ class GameModeUtils @Inject constructor(private val context: Context) {
 
     fun setActiveGameMode(systemSettings: SystemSettings, mode: Int) {
         val packageName = activeGame?.packageName ?: return
-        manager?.setGameMode(packageName, mode)
         activeGame = setGameModeFor(packageName, systemSettings, mode)
     }
 
     fun setGameModeFor(packageName: String, systemSettings: SystemSettings, mode: Int): UserGame {
+        applyGameModeFor(packageName, mode)
         val data = UserGame(packageName, mode)
         systemSettings.userGames = systemSettings.userGames
             .filter { x -> x.packageName != packageName }
@@ -71,6 +66,16 @@ class GameModeUtils @Inject constructor(private val context: Context) {
             .apply { add(data) }
 
         return data
+    }
+
+    fun availableGameModes(packageName: String): IntArray =
+        manager?.getAvailableGameModes(packageName) ?: intArrayOf()
+
+    fun effectiveGameMode(packageName: String): Int =
+        manager?.getGameModeInfo(packageName)?.activeGameMode ?: GameManager.GAME_MODE_UNSUPPORTED
+
+    fun applyGameModeFor(packageName: String, mode: Int) {
+        if (mode in availableGameModes(packageName)) manager?.setGameMode(packageName, mode)
     }
 
     fun setupBatteryMode(enable: Boolean) {
@@ -97,26 +102,24 @@ class GameModeUtils @Inject constructor(private val context: Context) {
         return info.firstOrNull()?.activityInfo
     }
 
-    fun isAngleUsed(packageName: String?) = packageName?.let {
-        DeviceConfig.getString(DeviceConfig.NAMESPACE_GAME_OVERLAY, it, null)
-            ?.contains("useAngle=true")
-    } ?: false
+    fun isAngleUsed(packageName: String?): Boolean = interventionModes(packageName)
+        .any { it["useAngle"] == "true" }
 
-    fun downscaleFactorOf(packageName: String?) = packageName?.let { pkg ->
-        DeviceConfig.getString(DeviceConfig.NAMESPACE_GAME_OVERLAY, pkg, null)
-            ?.split(":")
-            ?.firstOrNull { it.contains("mode=${GameManager.GAME_MODE_PERFORMANCE}") }
-            ?.split(",")
-            ?.firstOrNull { it.startsWith("downscaleFactor=") }
-            ?.substringAfter('=')
-            ?.toFloatOrNull()
-    } ?: GameConfig.NO_DOWNSCALE
+    fun downscaleFactorOf(packageName: String?): Float = interventionModes(packageName)
+        .lastOrNull { it["mode"]?.toIntOrNull() == GameManager.GAME_MODE_PERFORMANCE }
+        ?.get("downscaleFactor")?.toFloatOrNull() ?: GameConfig.NO_DOWNSCALE
+
+    private fun interventionModes(packageName: String?) = GameConfig.parseModes(packageName?.let {
+        DeviceConfig.getString(DeviceConfig.NAMESPACE_GAME_OVERLAY, it, null)
+    })
 
     companion object {
-        const val defaultPreferredMode = GameManager.GAME_MODE_STANDARD
         const val ACTION_ANGLE_FOR_ANDROID = "android.app.action.ANGLE_FOR_ANDROID"
 
-        fun Context.describeGameMode(mode: Int) =
-            resources.getStringArray(R.array.game_mode_names)[mode] ?: "Unsupported"
+        fun Context.describeGameMode(mode: Int): String {
+            if (mode == GameManager.GAME_MODE_CUSTOM) return getString(R.string.game_mode_custom)
+            val names = resources.getStringArray(R.array.game_mode_names)
+            return names.getOrNull(mode) ?: names[GameManager.GAME_MODE_UNSUPPORTED]
+        }
     }
 }
