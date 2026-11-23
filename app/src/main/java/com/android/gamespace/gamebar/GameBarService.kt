@@ -225,6 +225,9 @@ class GameBarService : Hilt_GameBarService() {
 
     override fun onDestroy() {
         if (gameActive) onGameLeave()
+        if (::panelView.isInitialized) {
+            panelView.destroy()
+        }
         fpsRecorder.removeListener(recordingListener)
         super.onDestroy()
     }

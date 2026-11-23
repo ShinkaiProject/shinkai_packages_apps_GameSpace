@@ -45,6 +45,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.Executors
 
 data class TileUiState(
     @StringRes val titleRes: Int,
@@ -699,10 +700,13 @@ object TileControllerFactory {
             context,
             type,
             read = { ContentResolver.getMasterSyncAutomatically() },
-            write = { enabled -> Thread { ContentResolver.setMasterSyncAutomatically(enabled) }.start() },
+            write = { enabled ->
+                autoSyncExecutor.execute { ContentResolver.setMasterSyncAutomatically(enabled) }
+            },
             summary = { enabledSummary(context, it) },
             watcher = { onChange ->
-                val observer = SyncStatusObserver { onChange() }
+                val mainHandler = Handler(Looper.getMainLooper())
+                val observer = SyncStatusObserver { mainHandler.post { onChange() } }
                 val handle = ContentResolver.addStatusChangeListener(
                     ContentResolver.SYNC_OBSERVER_TYPE_SETTINGS,
                     observer,
@@ -751,6 +755,7 @@ object TileControllerFactory {
     private const val TETHERING_WIFI = 0
     private const val KEY_NIGHT_DISPLAY_ACTIVATED = "night_display_activated"
     private const val KEY_BYPASS_CHARGE = "bypass_charge_enabled"
+    private val autoSyncExecutor = Executors.newSingleThreadExecutor()
 }
 
 private fun enabledSummary(context: Context, enabled: Boolean): String = context.getString(

@@ -75,6 +75,11 @@ class PanelView @JvmOverloads constructor(
         panelLifecycleOwner.pause()
         super.onDetachedFromWindow()
     }
+
+    fun destroy() {
+        composeView.disposeComposition()
+        panelLifecycleOwner.destroy()
+    }
 }
 
 private class PanelLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
@@ -105,5 +110,12 @@ private class PanelLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, Vie
         if (registry.currentState != Lifecycle.State.DESTROYED) {
             registry.currentState = Lifecycle.State.CREATED
         }
+    }
+
+    fun destroy() {
+        if (registry.currentState != Lifecycle.State.DESTROYED) {
+            registry.currentState = Lifecycle.State.DESTROYED
+        }
+        viewModelStore.clear()
     }
 }
