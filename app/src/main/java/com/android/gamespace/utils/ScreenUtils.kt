@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -129,7 +130,13 @@ class ScreenUtils @Inject constructor(private val context: Context) {
         return batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
     }
 
+    fun isBypassChargeSupported(): Boolean =
+        Build.MANUFACTURER.equals("Google", ignoreCase = true) ||
+            SystemProperties.getBoolean("persist.sys.battery_bypass_supported", false)
+
     fun bypassCharge(enable: Boolean) {
+        if (!isBypassChargeSupported()) return
+
         val bypassEnabledByUser = Settings.System.getIntForUser(
             context.contentResolver, "smart_charge_by_user", 0,
             UserHandle.USER_CURRENT
@@ -149,11 +156,21 @@ class ScreenUtils @Inject constructor(private val context: Context) {
             if (enable) "true" else "false"
         )
 
-        SystemProperties.set(
-            "persist.sys.battery_health_limit_bypass_level",
-            if (enable) getBatteryLevel().toString() else "80"
-        )
-        
+        if (enable) {
+            val level = getBatteryLevel()
+            if (level >= 0) {
+                SystemProperties.set(
+                    "persist.sys.battery_health_limit_bypass_level",
+                    level.toString()
+                )
+            }
+        } else {
+            SystemProperties.set(
+                "persist.sys.battery_health_limit_bypass_level",
+                "80"
+            )
+        }
+
         if (bypassEnabledByUser) return
 
         Settings.System.putIntForUser(

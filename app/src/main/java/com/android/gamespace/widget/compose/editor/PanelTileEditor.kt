@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,8 @@ import androidx.compose.ui.zIndex
 import com.android.gamespace.R
 import com.android.gamespace.data.AppSettings
 import com.android.gamespace.data.TileLayoutModel
+import com.android.gamespace.utils.di.ServiceViewEntryPoint
+import com.android.gamespace.utils.entryPointOf
 import com.android.gamespace.widget.tiles.TileType
 
 @Composable
@@ -38,7 +41,15 @@ fun PanelTileEditor(
     onSelectedTilesChange: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val allIds = remember { TileType.entries.map { it.id } }
+    val context = LocalContext.current
+    val bypassChargeSupported = remember(context) {
+        context.entryPointOf<ServiceViewEntryPoint>().screenUtils().isBypassChargeSupported()
+    }
+    val allIds = remember(bypassChargeSupported) {
+        TileType.entries
+            .filter { it != TileType.BYPASS_CHARGE || bypassChargeSupported }
+            .map { it.id }
+    }
     val model = remember {
         TileLayoutModel(
             allIds = allIds,

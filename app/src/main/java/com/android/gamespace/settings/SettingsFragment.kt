@@ -18,9 +18,7 @@
 package com.android.gamespace.settings
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.os.SystemProperties
 import android.provider.Settings
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,9 +32,14 @@ import com.android.gamespace.preferences.AppListPreferences
 import com.android.gamespace.preferences.appselector.AppSelectorActivity
 import com.android.gamespace.preferences.QuickStartAppPreference
 import com.android.gamespace.preferences.QuickStartAppPreferenceDialogFragment
+import com.android.gamespace.utils.ScreenUtils
+import javax.inject.Inject
 
 @AndroidEntryPoint(SettingsBasePreferenceFragment::class)
 class SettingsFragment : Hilt_SettingsFragment() {
+
+    @Inject
+    lateinit var screenUtils: ScreenUtils
 
     private var apps: AppListPreferences? = null
 
@@ -61,11 +64,9 @@ class SettingsFragment : Hilt_SettingsFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val isGoogleDevice = Build.MANUFACTURER.equals("Google", ignoreCase = true)
-        val bypassSupported = SystemProperties.getBoolean("persist.sys.battery_bypass_supported", false)
         val bypassChargePref = findPreference<Preference>("bypass_charge_enabled")
 
-        if (!isGoogleDevice && !bypassSupported && bypassChargePref != null) {
+        if (!screenUtils.isBypassChargeSupported() && bypassChargePref != null) {
             val category = findPreference<Preference>("in_game_preferences") as? PreferenceCategory
             category?.removePreference(bypassChargePref)
         }

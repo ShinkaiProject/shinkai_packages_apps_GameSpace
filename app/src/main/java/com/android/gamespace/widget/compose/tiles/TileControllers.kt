@@ -725,11 +725,12 @@ object TileControllerFactory {
             context,
             type,
             read = {
-                Settings.System.getIntForUser(
+                screenUtils.isBypassChargeSupported() && Settings.System.getIntForUser(
                     context.contentResolver, KEY_BYPASS_CHARGE, 0, UserHandle.USER_CURRENT,
                 ) == 1
             },
             write = { enabled ->
+                if (!screenUtils.isBypassChargeSupported()) return@ToggleTileController
                 if (!enabled) runCatching { screenUtils.bypassCharge(false) }
                 Settings.System.putIntForUser(
                     context.contentResolver,
